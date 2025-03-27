@@ -3,7 +3,7 @@
 
 # Relative path conversion top directories.
 set(CMAKE_RELATIVE_PATH_TOP_SOURCE "/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend")
-set(CMAKE_RELATIVE_PATH_TOP_BINARY "/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/build ")
+set(CMAKE_RELATIVE_PATH_TOP_BINARY "/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/build")
 
 # Force unix paths in dependencies.
 set(CMAKE_FORCE_UNIX_PATHS 1)

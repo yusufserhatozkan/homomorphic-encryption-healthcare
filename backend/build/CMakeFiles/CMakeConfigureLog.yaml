@@ -99,8 +99,8 @@ events:
     checks:
       - "Detecting C compiler ABI info"
     directories:
-      source: "/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/build /CMakeFiles/CMakeScratch/TryCompile-1DUuoK"
-      binary: "/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/build /CMakeFiles/CMakeScratch/TryCompile-1DUuoK"
+      source: "/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/build/CMakeFiles/CMakeScratch/TryCompile-1DUuoK"
+      binary: "/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/build/CMakeFiles/CMakeScratch/TryCompile-1DUuoK"
     cmakeVariables:
       CMAKE_C_FLAGS: ""
       CMAKE_C_FLAGS_DEBUG: "-g"
@@ -284,8 +284,8 @@ events:
     checks:
       - "Detecting CXX compiler ABI info"
     directories:
-      source: "/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/build /CMakeFiles/CMakeScratch/TryCompile-rdISSn"
-      binary: "/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/build /CMakeFiles/CMakeScratch/TryCompile-rdISSn"
+      source: "/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/build/CMakeFiles/CMakeScratch/TryCompile-rdISSn"
+      binary: "/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/build/CMakeFiles/CMakeScratch/TryCompile-rdISSn"
     cmakeVariables:
       CMAKE_CXX_FLAGS: ""
       CMAKE_CXX_FLAGS_DEBUG: "-g"

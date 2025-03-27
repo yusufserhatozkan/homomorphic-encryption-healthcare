@@ -1,10 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
-project(CppServer)
+project(CrowBackend)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Include Crow (Adjust path if needed)
-include_directories(third_party/Crow/include)
+# Ścieżki do Crow i Asio
+include_directories(${CMAKE_SOURCE_DIR}/libraries/crow/include)
+include_directories(${CMAKE_SOURCE_DIR}/libraries/asio/include)
 
-# Create the executable
-add_executable(server src/main.cpp)
+# Plik wykonywalny
+add_executable(backend backend/src/main.cpp)
+
+# Platform-specific: linkujemy co trzeba
+if(WIN32)
+    target_link_libraries(backend Ws2_32 Mswsock)
+elseif(UNIX AND NOT APPLE)
+    target_link_libraries(backend pthread)
+endif()
+

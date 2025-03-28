@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
 import './App.css';
 
 function App() {
     const [count, setCount] = useState(0);
     const [backendData, setBackendData] = useState(null);
+    const [inputText, setInputText] = useState('');
     const [encryptedData, setEncryptedData] = useState(null);
     const [decryptedData, setDecryptedData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     // Fetch data from backend on component mount
     useEffect(() => {
@@ -22,107 +23,151 @@ function App() {
             setBackendData(data);
         } catch (error) {
             console.error('Error fetching backend data:', error);
+            setError('Failed to connect to the server');
         }
     };
 
     // Function to send data to the /encrypt endpoint of your backend
     const encryptData = async () => {
-        const response = await fetch('http://localhost:18080/encrypt', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ data: "Hello World" }), // Example plaintext
-        });
+        if (!inputText.trim()) {
+            setError('Please enter text to encrypt');
+            return;
+        }
+        
+        setLoading(true);
+        setError(null);
+        
+        try {
+            const response = await fetch('http://localhost:18080/encrypt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ data: inputText }),
+            });
 
-        if (response.ok) {
-            const encrypted = await response.text();
-            console.log("Encrypted:", encrypted);
-        } else {
-            console.error("Error encrypting data:", response.statusText);
+            if (response.ok) {
+                const encrypted = await response.text();
+                setEncryptedData(encrypted);
+                console.log("Encrypted:", encrypted);
+            } else {
+                console.error("Error encrypting data:", response.statusText);
+                setError('Encryption failed: ' + response.statusText);
+            }
+        } catch (error) {
+            console.error('Error encrypting data:', error);
+            setError('Failed to connect to encryption service');
+        } finally {
+            setLoading(false);
         }
     };
 
-
     // Function to send data to the /decrypt endpoint of your backend
-    const decryptData = async (data) => {
+    const decryptData = async () => {
+        if (!encryptedData) {
+            setError('No encrypted data to decrypt');
+            return;
+        }
+        
+        setLoading(true);
+        setError(null);
+        
         try {
             const response = await fetch('http://localhost:18080/decrypt', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ data: data }),
+                body: JSON.stringify({ data: encryptedData }),
             });
-            const decrypted = await response.text();
-            setDecryptedData(decrypted);
+            
+            if (response.ok) {
+                const decrypted = await response.text();
+                setDecryptedData(decrypted);
+            } else {
+                setError('Decryption failed: ' + response.statusText);
+            }
         } catch (error) {
             console.error('Error decrypting data:', error);
+            setError('Failed to connect to decryption service');
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <>
-            <div>
-                <a href="https://vite.dev" target="_blank">
-                    <img src={viteLogo} className="logo" alt="Vite logo" />
-                </a>
-                <a href="https://react.dev" target="_blank">
-                    <img src={reactLogo} className="logo react" alt="React logo" />
-                </a>
-            </div>
-            <h1>Vite + React</h1>
+        <div className="app-container">
+            <header>
+                <h1>Homomorphic Encryption</h1>
+                <p className="subtitle">Secure data processing while encrypted</p>
+            </header>
 
-            <div className="card">
-                <button onClick={() => setCount((count) => count + 1)}>
-                    count is {count}
-                </button>
-                <p>
-                    Edit <code>src/App.jsx</code> and save to test HMR
-                </p>
-            </div>
-
-            {/* Display backend data */}
-            <div>
-                {backendData ? (
-                    <div>
-                        <h2>Backend Data:</h2>
-                        <pre>{JSON.stringify(backendData, null, 2)}</pre>
+            <main>
+                <section className="encryption-panel">
+                    <h2>Encryption</h2>
+                    <div className="input-group">
+                        <label htmlFor="plaintext">Enter text to encrypt:</label>
+                        <textarea 
+                            id="plaintext"
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
+                            placeholder="Type your plaintext here..."
+                            rows={4}
+                        />
                     </div>
-                ) : (
-                    <p>Loading data from backend...</p>
-                )}
-            </div>
+                    
+                    <button 
+                        onClick={encryptData} 
+                        disabled={loading || !inputText.trim()}
+                        className="action-button"
+                    >
+                        {loading ? 'Encrypting...' : 'Encrypt Data'}
+                    </button>
+                    
+                    {encryptedData && (
+                        <div className="result-box">
+                            <h3>Encrypted Data:</h3>
+                            <pre>{encryptedData}</pre>
+                        </div>
+                    )}
+                </section>
 
-            {/* Encrypt and Decrypt Data */}
-            <div>
-                <button onClick={() => encryptData('Hello World!')}>Encrypt "Hello World!"</button>
-                {encryptedData && (
-                    <div>
-                        <h3>Encrypted Data:</h3>
-                        <p>{encryptedData}</p>
+                <section className="decryption-panel">
+                    <h2>Decryption</h2>
+                    <button 
+                        onClick={decryptData} 
+                        disabled={loading || !encryptedData}
+                        className="action-button"
+                    >
+                        {loading ? 'Decrypting...' : 'Decrypt Data'}
+                    </button>
+                    
+                    {decryptedData && (
+                        <div className="result-box">
+                            <h3>Decrypted Result:</h3>
+                            <pre>{decryptedData}</pre>
+                        </div>
+                    )}
+                </section>
+
+                {error && (
+                    <div className="error-message">
+                        <p>{error}</p>
                     </div>
                 )}
-            </div>
-
-            <div>
-                {encryptedData && (
-                    <div>
-                        <button onClick={() => decryptData(encryptedData)}>Decrypt Data</button>
-                        {decryptedData && (
-                            <div>
-                                <h3>Decrypted Data:</h3>
-                                <p>{decryptedData}</p>
-                            </div>
-                        )}
-                    </div>
+                
+                {backendData && (
+                    <section className="server-status">
+                        <h3>Server Connection:</h3>
+                        <p>Connected successfully</p>
+                    </section>
                 )}
-            </div>
+            </main>
 
-            <p className="read-the-docs">
-                Click on the Vite and React logos to learn more
-            </p>
-        </>
+            <footer>
+                <p>Information Security - Homomorphic Encryption</p>
+            </footer>
+        </div>
     );
 }
 

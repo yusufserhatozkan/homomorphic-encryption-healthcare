@@ -8,13 +8,13 @@ Welcome to the **Applied Cryptography - Group 08** Cloud Processing Module. This
 1. [Project Overview](#project-overview)
 2. [Features](#features)
 3. [Prerequisites](#prerequisites)
-   - [Frontend Documentation](frontend.md)
-    - [Backend Documentation](backend.md)
+   - [Frontend Documentation](docs/frontend.md)
+   - [Backend Documentation](docs/backend.md)
 4. [Installation](#installation)
 5. [Running the Project](#running-the-project)
 6. [Usage](#usage)
 7. [Project Structure](#project-structure)
-8. [Contributing](#contributing)
+8. [Contributing](#contributors)
 9. [License](#license)
 
 ---

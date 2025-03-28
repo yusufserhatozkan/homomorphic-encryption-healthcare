@@ -43,7 +43,6 @@ This is still a prototype so functionality is limited to encryption and decrypti
 - Node.js ( version 16 or higher)
 - npm 
 
-
 ---
 
 ## **Installation**
@@ -60,6 +59,22 @@ cd applied-cryptography-group08/backend
 cd build
 ./backend
 ```
+If running does not work, you would need to recompile.
+
+### **2.1 Compile the backend on Windows**
+```bash
+cd applied-cryptography-group08\backend\build
+Remove-Item -Recurse -Force .\*
+cd ..
+cd ..
+cmake -B backend/build -S 
+cmake --build backend/build
+cd backend\build
+.\backend.exe
+```
+
+This will compile and execute the backend executable.
+
 
 ### **3. Run the Frontend**
 ```bash
@@ -76,7 +91,6 @@ After running the frontend, open your browser and navigate to the URL provided i
 The following individuals contributed to the development of this project:
 
 - **Luca**
-
 - **Kamil**
 - **Andrei**
 - **Tomasz**

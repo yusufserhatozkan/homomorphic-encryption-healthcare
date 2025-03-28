@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
-    const [count, setCount] = useState(0);
     const [backendData, setBackendData] = useState(null);
     const [inputText, setInputText] = useState('');
     const [encryptedData, setEncryptedData] = useState(null);
     const [decryptedData, setDecryptedData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // Base URL constant
+    const API_BASE_URL = 'http://localhost:18080';
 
     // Fetch data from backend on component mount
     useEffect(() => {
@@ -18,8 +20,21 @@ function App() {
     // Function to fetch data from /json endpoint of your backend
     const fetchBackendData = async () => {
         try {
-            const response = await fetch('http://localhost:18080/json');
+            const response = await fetch(`${API_BASE_URL}/json`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // Include credentials if needed
+                // credentials: 'include',
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            
             const data = await response.json();
+            console.log("Backend data:", data);
             setBackendData(data);
         } catch (error) {
             console.error('Error fetching backend data:', error);
@@ -38,7 +53,8 @@ function App() {
         setError(null);
         
         try {
-            const response = await fetch('http://localhost:18080/encrypt', {
+            console.log("Sending for encryption:", inputText);
+            const response = await fetch(`${API_BASE_URL}/encrypt`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -46,10 +62,12 @@ function App() {
                 body: JSON.stringify({ data: inputText }),
             });
 
+            console.log("Encryption response status:", response.status);
+            
             if (response.ok) {
                 const encrypted = await response.text();
-                setEncryptedData(encrypted);
                 console.log("Encrypted:", encrypted);
+                setEncryptedData(encrypted);
             } else {
                 console.error("Error encrypting data:", response.statusText);
                 setError('Encryption failed: ' + response.statusText);
@@ -73,7 +91,8 @@ function App() {
         setError(null);
         
         try {
-            const response = await fetch('http://localhost:18080/decrypt', {
+            console.log("Sending for decryption:", encryptedData);
+            const response = await fetch(`${API_BASE_URL}/decrypt`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -81,8 +100,11 @@ function App() {
                 body: JSON.stringify({ data: encryptedData }),
             });
             
+            console.log("Decryption response status:", response.status);
+            
             if (response.ok) {
                 const decrypted = await response.text();
+                console.log("Decrypted:", decrypted);
                 setDecryptedData(decrypted);
             } else {
                 setError('Decryption failed: ' + response.statusText);
@@ -160,6 +182,7 @@ function App() {
                     <section className="server-status">
                         <h3>Server Connection:</h3>
                         <p>Connected successfully</p>
+                        <pre>{JSON.stringify(backendData, null, 2)}</pre>
                     </section>
                 )}
             </main>

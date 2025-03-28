@@ -1,13 +1,3 @@
-# --- Build output ---
-build/
-*.exe
-*.dll
-*.lib
-*.a
-*.o
-*.obj
-*.pch
-
 # --- CMake files ---
 CMakeFiles/
 CMakeCache.txt

@@ -1,0 +1,26 @@
+# --- Build output ---
+build/
+*.exe
+*.dll
+*.lib
+*.a
+*.o
+*.obj
+*.pch
+
+# --- CMake files ---
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# --- System ---
+.DS_Store
+Thumbs.db
+
+# --- IDEs ---
+.idea/
+.vscode/
+
+# --- Logs ---
+*.log

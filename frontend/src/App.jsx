@@ -3,115 +3,67 @@ import './App.css';
 
 function App() {
     const [backendData, setBackendData] = useState(null);
-    const [inputText, setInputText] = useState('');
-    const [encryptedData, setEncryptedData] = useState(null);
-    const [decryptedData, setDecryptedData] = useState(null);
+    const [numberA, setNumberA] = useState('');
+    const [numberB, setNumberB] = useState('');
+    const [homEncryptedResult, setHomEncryptedResult] = useState(null);
+    const [homDecryptedResult, setHomDecryptedResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Base URL constant
     const API_BASE_URL = 'http://localhost:18080';
+    const SECRET_KEY = 1337;
 
-    // Fetch data from backend on component mount
     useEffect(() => {
         fetchBackendData();
     }, []);
 
-    // Function to fetch data from /json endpoint of your backend
     const fetchBackendData = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/json`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                // Include credentials if needed
-                // credentials: 'include',
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            
+            const response = await fetch(`${API_BASE_URL}/json`);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
             const data = await response.json();
-            console.log("Backend data:", data);
             setBackendData(data);
         } catch (error) {
-            console.error('Error fetching backend data:', error);
             setError('Failed to connect to the server');
         }
     };
 
-    // Function to send data to the /encrypt endpoint of your backend
-    const encryptData = async () => {
-        if (!inputText.trim()) {
-            setError('Please enter text to encrypt');
+    const encryptNumber = (num) => num * SECRET_KEY;
+    const decryptNumber = (encrypted) => encrypted / SECRET_KEY;
+
+    const sendEncryptedSum = async () => {
+        const a = parseInt(numberA);
+        const b = parseInt(numberB);
+        if (isNaN(a) || isNaN(b)) {
+            setError('Please enter valid numbers');
             return;
         }
-        
+
         setLoading(true);
         setError(null);
-        
+
+        const encryptedA = encryptNumber(a);
+        const encryptedB = encryptNumber(b);
+
         try {
-            console.log("Sending for encryption:", inputText);
-            const response = await fetch(`${API_BASE_URL}/encrypt`, {
+            const response = await fetch(`${API_BASE_URL}/add_encrypted`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ data: inputText }),
+                body: JSON.stringify({ a: encryptedA, b: encryptedB }),
             });
 
-            console.log("Encryption response status:", response.status);
-            
             if (response.ok) {
-                const encrypted = await response.text();
-                console.log("Encrypted:", encrypted);
-                setEncryptedData(encrypted);
+                const result = await response.json();
+                const encryptedSum = result.result;
+                setHomEncryptedResult(encryptedSum);
+                setHomDecryptedResult(decryptNumber(encryptedSum));
             } else {
-                console.error("Error encrypting data:", response.statusText);
-                setError('Encryption failed: ' + response.statusText);
+                setError('Homomorphic addition failed');
             }
-        } catch (error) {
-            console.error('Error encrypting data:', error);
-            setError('Failed to connect to encryption service');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Function to send data to the /decrypt endpoint of your backend
-    const decryptData = async () => {
-        if (!encryptedData) {
-            setError('No encrypted data to decrypt');
-            return;
-        }
-        
-        setLoading(true);
-        setError(null);
-        
-        try {
-            console.log("Sending for decryption:", encryptedData);
-            const response = await fetch(`${API_BASE_URL}/decrypt`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ data: encryptedData }),
-            });
-            
-            console.log("Decryption response status:", response.status);
-            
-            if (response.ok) {
-                const decrypted = await response.text();
-                console.log("Decrypted:", decrypted);
-                setDecryptedData(decrypted);
-            } else {
-                setError('Decryption failed: ' + response.statusText);
-            }
-        } catch (error) {
-            console.error('Error decrypting data:', error);
-            setError('Failed to connect to decryption service');
+        } catch (err) {
+            setError('Failed to connect to homomorphic addition service');
         } finally {
             setLoading(false);
         }
@@ -121,53 +73,31 @@ function App() {
         <div className="app-container">
             <header>
                 <h1>Homomorphic Encryption</h1>
-                <p className="subtitle">Secure data processing while encrypted</p>
+                <p className="subtitle">Secure number processing with encryption</p>
             </header>
 
             <main>
-                <section className="encryption-panel">
-                    <h2>Encryption</h2>
+                <section className="homomorphic-panel">
+                    <h2>Homomorphic Addition (Numbers)</h2>
                     <div className="input-group">
-                        <label htmlFor="plaintext">Enter text to encrypt:</label>
-                        <textarea 
-                            id="plaintext"
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            placeholder="Type your plaintext here..."
-                            rows={4}
-                        />
+                        <label>Enter Number A:</label>
+                        <input type="number" value={numberA} onChange={(e) => setNumberA(e.target.value)} />
+                        <label>Enter Number B:</label>
+                        <input type="number" value={numberB} onChange={(e) => setNumberB(e.target.value)} />
                     </div>
-                    
-                    <button 
-                        onClick={encryptData} 
-                        disabled={loading || !inputText.trim()}
-                        className="action-button"
-                    >
-                        {loading ? 'Encrypting...' : 'Encrypt Data'}
+                    <button onClick={sendEncryptedSum} disabled={loading} className="action-button">
+                        {loading ? 'Processing...' : 'Add Encrypted Numbers'}
                     </button>
-                    
-                    {encryptedData && (
+                    {homEncryptedResult !== null && (
                         <div className="result-box">
-                            <h3>Encrypted Data:</h3>
-                            <pre>{encryptedData}</pre>
+                            <h3>Encrypted Sum:</h3>
+                            <pre>{homEncryptedResult}</pre>
                         </div>
                     )}
-                </section>
-
-                <section className="decryption-panel">
-                    <h2>Decryption</h2>
-                    <button 
-                        onClick={decryptData} 
-                        disabled={loading || !encryptedData}
-                        className="action-button"
-                    >
-                        {loading ? 'Decrypting...' : 'Decrypt Data'}
-                    </button>
-                    
-                    {decryptedData && (
+                    {homDecryptedResult !== null && (
                         <div className="result-box">
-                            <h3>Decrypted Result:</h3>
-                            <pre>{decryptedData}</pre>
+                            <h3>Decrypted Sum:</h3>
+                            <pre>{homDecryptedResult}</pre>
                         </div>
                     )}
                 </section>
@@ -177,7 +107,7 @@ function App() {
                         <p>{error}</p>
                     </div>
                 )}
-                
+
                 {backendData && (
                     <section className="server-status">
                         <h3>Server Connection:</h3>

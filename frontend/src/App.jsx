@@ -1,6 +1,27 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 
+// === Encryption logic split into smaller parts ===
+const SECRET_KEY = 1337;
+
+const multiplyWithKey = (num) => {
+    return num * SECRET_KEY;
+};
+
+const divideByKey = (num) => {
+    return num / SECRET_KEY;
+};
+
+const encryptNumber = (num) => {
+    return multiplyWithKey(num);
+};
+
+const decryptNumber = (encrypted) => {
+    return divideByKey(encrypted);
+};
+
+const API_BASE_URL = 'http://localhost:18080';
+
 function App() {
     const [backendData, setBackendData] = useState(null);
     const [numberA, setNumberA] = useState('');
@@ -9,9 +30,6 @@ function App() {
     const [homDecryptedResult, setHomDecryptedResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-
-    const API_BASE_URL = 'http://localhost:18080';
-    const SECRET_KEY = 1337;
 
     useEffect(() => {
         fetchBackendData();
@@ -28,12 +46,10 @@ function App() {
         }
     };
 
-    const encryptNumber = (num) => num * SECRET_KEY;
-    const decryptNumber = (encrypted) => encrypted / SECRET_KEY;
-
     const sendEncryptedSum = async () => {
         const a = parseInt(numberA);
         const b = parseInt(numberB);
+
         if (isNaN(a) || isNaN(b)) {
             setError('Please enter valid numbers');
             return;
@@ -48,9 +64,7 @@ function App() {
         try {
             const response = await fetch(`${API_BASE_URL}/add_encrypted`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ a: encryptedA, b: encryptedB }),
             });
 

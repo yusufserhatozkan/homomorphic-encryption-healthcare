@@ -27,6 +27,11 @@ public:
     }
 };
 
+// Homomorphic addition helper
+int homomorphic_add(int encrypted_a, int encrypted_b) {
+    return encrypted_a + encrypted_b;
+}
+
 int main() {
     crow::App<CORSMiddleware> app;
 
@@ -71,7 +76,7 @@ int main() {
             int encrypted_a = json_data["a"].i();
             int encrypted_b = json_data["b"].i();
 
-            int encrypted_sum = encrypted_a + encrypted_b;
+            int encrypted_sum = homomorphic_add(encrypted_a, encrypted_b);
             std::cout << "[LOG] Encrypted sum: " << encrypted_sum << std::endl;
 
             crow::json::wvalue result;

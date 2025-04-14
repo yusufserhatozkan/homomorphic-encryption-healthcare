@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import './App.css';
 
 // === Encryption logic split into smaller parts ===
@@ -30,10 +31,52 @@ function App() {
     const [homDecryptedResult, setHomDecryptedResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [csvFile, setCsvFile] = useState('/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/src/data/sample.csv');
+    const [columnIndex, setColumnIndex] = useState(0);
+    const [useEncryption, setUseEncryption] = useState(false);
+    const [csvResult, setCsvResult] = useState(null);
+
 
     useEffect(() => {
         fetchBackendData();
     }, []);
+
+    const fetchCSVSum = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await axios.post(`${API_BASE_URL}/csv/sum`, {
+                file: csvFile,
+                column: parseInt(columnIndex),
+                encrypted: useEncryption
+            });
+
+            setCsvResult(response.data);
+        } catch (err) {
+            setError(`CSV operation failed: ${err.message}`);
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchCSVAverage = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await axios.post(`${API_BASE_URL}/csv/average`, {
+                file: csvFile,
+                column: parseInt(columnIndex)
+            });
+
+            setCsvResult(response.data);
+        } catch (err) {
+            setError(`CSV operation failed: ${err.message}`);
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchBackendData = async () => {
         try {
@@ -112,6 +155,59 @@ function App() {
                         <div className="result-box">
                             <h3>Decrypted Sum:</h3>
                             <pre>{homDecryptedResult}</pre>
+                        </div>
+                    )}
+                </section>
+
+                <section className="csv-panel">
+                    <h2>CSV Data Operations</h2>
+                    <div className="input-group">
+                        <label>CSV File Path:</label>
+                        <input
+                            type="text"
+                            value={csvFile}
+                            onChange={(e) => setCsvFile(e.target.value)}
+                            placeholder="Path to CSV file"
+                        />
+
+                        <label>Column Index:</label>
+                        <input
+                            type="number"
+                            value={columnIndex}
+                            onChange={(e) => setColumnIndex(e.target.value)}
+                            min="0"
+                        />
+
+                        <div className="checkbox-group">
+                            <input
+                                type="checkbox"
+                                id="use-encryption"
+                                checked={useEncryption}
+                                onChange={(e) => setUseEncryption(e.target.checked)}
+                            />
+                            <label htmlFor="use-encryption">Use Encryption</label>
+                        </div>
+                    </div>
+
+                    <div className="button-group">
+                        <button onClick={fetchCSVSum} disabled={loading} className="action-button">
+                            Calculate Sum
+                        </button>
+                        <button onClick={fetchCSVAverage} disabled={loading} className="action-button">
+                            Calculate Average
+                        </button>
+                    </div>
+
+                    {csvResult && (
+                        <div className="result-box">
+                            <h3>CSV Operation Result:</h3>
+                            <pre>{JSON.stringify(csvResult, null, 2)}</pre>
+                            {useEncryption && csvResult.encrypted_sum && (
+                                <div>
+                                    <h4>Decrypted Value:</h4>
+                                    <pre>{csvResult.encrypted_sum / SECRET_KEY}</pre>
+                                </div>
+                            )}
                         </div>
                     )}
                 </section>

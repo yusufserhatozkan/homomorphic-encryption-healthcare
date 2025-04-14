@@ -1,0 +1,227 @@
+%% Class Diagram Code
+classDiagram
+    class Frontend {
+        +useState(): State
+        +useEffect(): void
+        +encryptNumber(num): int
+        +decryptNumber(encrypted): double
+        +fetchBackendData(): void
+        +sendEncryptedSum(): void
+        +fetchCSVSum(): void
+        +fetchCSVAverage(): void
+        -SECRET_KEY: 1337
+        -API_BASE_URL: string
+    }
+
+    class Backend {
+        +main(): int
+        -homomorphic_add(encrypted_a, encrypted_b): int
+        -SECRET_KEY: 1337
+        +port: 18080
+    }
+
+    class CSVDataHandler {
+        -data: vector<vector<double>>
+        -filename: string
+        -SECRET_KEY: 1337
+        +loadCSVData(): bool
+        +getColumn(columnIndex): vector<double>
+        +calculateSum(columnIndex): double
+        +calculateAverage(columnIndex): double
+        +encryptValue(value): int
+        +decryptValue(encryptedValue): double
+        +getEncryptedColumn(columnIndex): vector<int>
+        +calculateEncryptedSum(columnIndex): int
+    }
+
+    class CORSMiddleware {
+        +before_handle(req, res, ctx): void
+        +after_handle(req, res, ctx): void
+    }
+
+    class CrowApp {
+        +App<CORSMiddleware>
+        +CROW_ROUTE("/")
+        +CROW_ROUTE("/json")
+        +CROW_ROUTE("/add_encrypted")
+    }
+
+    %% Component relationships
+    Backend <|-- CrowApp : uses
+    Backend *-- CORSMiddleware : includes
+    Backend *-- CSVDataHandler : utilizes
+    Frontend ..> Backend : HTTP requests
+    CrowApp ..> CSVDataHandler : calls routes
+
+    %% API Endpoints
+    class Endpoints {
+        +GET "/" : Welcome message
+        +GET "/json" : Backend status
+        +POST "/add_encrypted" : Homomorphic addition
+        +POST "/csv/sum" : Calculate column sum
+        +POST "/csv/average" : Calculate column average
+    }
+
+    CrowApp --> Endpoints : exposes
+    Frontend ..> Endpoints : accesses
+
+    %% Data Flow
+    class DataFlow {
+        +EncryptedNumbers
+        +EncryptedResults
+        +CSVOperations
+        +JSONResponses
+    }
+
+    Frontend --> DataFlow : sends
+    Backend --> DataFlow : processes
+    DataFlow --> Frontend : returns
+
+    %% User Interface Components
+    class UIComponents {
+        +HomomorphicPanel
+        +CSVPanel
+        +ResultDisplay
+        +ErrorHandling
+        +ServerStatus
+    }
+
+    Frontend *-- UIComponents : contains
+
+
+ %% System Data Flow Code
+
+ flowchart TD
+     %% Define main components
+     User([User])
+     ReactFE[React Frontend]
+     CPPBackend[C++ Backend Server]
+     CSVFile[(CSV File)]
+
+     %% User interactions
+     User -->|Enters numbers A & B| ReactFE
+     User -->|Specifies CSV file & column| ReactFE
+     User -->|Requests operation| ReactFE
+
+     %% Frontend processing
+     ReactFE -->|1. Encrypt numbers\nA' = A * SECRET_KEY\nB' = B * SECRET_KEY| ReactFE
+     ReactFE -->|2. Send encrypted data| CPPBackend
+
+     %% Backend operations
+     subgraph "Backend Processing"
+         CPPBackend -->|Read CSV data| CSVFile
+         CPPBackend -->|Process homomorphic\naddition: A' + B'| CPPBackend
+         CPPBackend -->|Process CSV operations| CPPBackend
+     end
+
+     %% Return results
+     CPPBackend -->|3. Return encrypted results| ReactFE
+     ReactFE -->|4. Decrypt results\nResult = EncryptedResult / SECRET_KEY| ReactFE
+     ReactFE -->|5. Display results to user| User
+
+     %% API communication paths
+     subgraph "API Endpoints"
+         api1["/add_encrypted"]
+         api2["/csv/sum"]
+         api3["/csv/average"]
+     end
+
+     ReactFE -.->|POST| api1
+     ReactFE -.->|POST| api2
+     ReactFE -.->|POST| api3
+     api1 -.->|JSON response| ReactFE
+     api2 -.->|JSON response| ReactFE
+     api3 -.->|JSON response| ReactFE
+
+     %% Connect API to backend
+     api1 -.-> CPPBackend
+     api2 -.-> CPPBackend
+     api3 -.-> CPPBackend
+
+     %% Styling
+     classDef frontend fill:#d6e5ff,stroke:#4285F4,stroke-width:2px
+     classDef backend fill:#e6ffe6,stroke:#34A853,stroke-width:2px
+     classDef api fill:#fff2cc,stroke:#FBBC05,stroke-width:2px
+     classDef user fill:#f9e0e3,stroke:#EA4335,stroke-width:2px
+     classDef data fill:#e6e6e6,stroke:#666666,stroke-width:2px
+
+     class ReactFE frontend
+     class CPPBackend,Backend backend
+     class api1,api2,api3 api
+     class User user
+     class CSVFile data
+
+
+
+%% Component Structure Code
+
+graph TB
+    %% Main components
+    subgraph "Frontend (React)"
+        App[App.jsx]
+        App --> FrontendComponents
+
+        subgraph "FrontendComponents"
+            HP[Homomorphic Panel]
+            CP[CSV Panel]
+            SP[Server Status Panel]
+            EM[Error Messages]
+        end
+
+        subgraph "Frontend Logic"
+            ES[Encryption Services]
+            AS[API Services]
+            SS[State Management]
+        end
+
+        App --> ES
+        App --> AS
+        App --> SS
+    end
+
+    subgraph "Backend (C++)"
+        Main[main.cpp]
+
+        subgraph "Core Services"
+            CR[Crow Routes]
+            HA[Homomorphic Addition]
+        end
+
+        subgraph "Data Handling"
+            CSV[CSV Data Handler]
+            JSON[JSON Processing]
+        end
+
+        subgraph "Middleware"
+            CORS[CORS Middleware]
+        end
+
+        Main --> CR
+        Main --> HA
+        Main --> CSV
+        Main --> JSON
+        Main --> CORS
+    end
+
+    %% Connections between frontend and backend
+    AS <-->|HTTP/JSON| CR
+
+    %% File connections
+    CSV <-->|Read/Process| Files[(CSV Files)]
+
+    %% External connections
+    User([User]) --> App
+
+    %% Define styles
+    classDef react fill:#61dafb,stroke:#282c34,stroke-width:2px,color:#282c34
+    classDef reactComp fill:#b5e8fc,stroke:#282c34,stroke-width:1px,color:#282c34
+    classDef cpp fill:#659ad2,stroke:#004482,stroke-width:2px,color:white
+    classDef cppComp fill:#b3c9e6,stroke:#004482,stroke-width:1px,color:#004482
+    classDef data fill:#ffe6cc,stroke:#d79b00,stroke-width:1px,color:#d79b00
+    classDef user fill:#d5e8d4,stroke:#82b366,stroke-width:1px,color:#82b366
+
+    class App,FrontendComponents,Frontend,ES,AS,SS react
+    class HP,CP,SP,EM reactComp
+    class Main,Core,Backend,CR,HA,CSV,JSON,CORS cpp
+    class Files data
+    class User user

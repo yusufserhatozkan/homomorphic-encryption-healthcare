@@ -1,31 +1,12 @@
 #include "crow.h"
 #include <iostream>
+#include "CORSMiddleware.h"
+#include "interfaceCSV.cpp"
 
 // Sekretny klucz używany do symulowanego homomorficznego szyfrowania
 const int SECRET_KEY = 1337;
 
 // Prosty middleware do obsługi CORS
-class CORSMiddleware {
-public:
-    struct context {};
-
-    void before_handle(crow::request& req, crow::response& res, context& ctx) {
-        res.set_header("Access-Control-Allow-Origin", "http://localhost:5173");
-        res.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
-        if (req.method == crow::HTTPMethod::OPTIONS) {
-            res.code = 204;
-            res.end();
-        }
-    }
-
-    void after_handle(crow::request& req, crow::response& res, context& ctx) {
-        res.set_header("Access-Control-Allow-Origin", "http://localhost:5173");
-        res.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        res.set_header("Access-Control-Allow-Headers", "Content-Type");
-    }
-};
 
 // Homomorphic addition helper
 int homomorphic_add(int encrypted_a, int encrypted_b) {
@@ -34,6 +15,8 @@ int homomorphic_add(int encrypted_a, int encrypted_b) {
 
 int main() {
     crow::App<CORSMiddleware> app;
+
+    addCSVRoutes(app);
 
     // Root route
     CROW_ROUTE(app, "/")([]() {

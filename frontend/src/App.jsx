@@ -91,30 +91,30 @@ function App() {
             </header>
 
             <main>
-                <section className="homomorphic-panel">
-                    <h2>Homomorphic Addition (Numbers)</h2>
-                    <div className="input-group">
-                        <label>Enter Number A:</label>
-                        <input type="number" value={numberA} onChange={(e) => setNumberA(e.target.value)} />
-                        <label>Enter Number B:</label>
-                        <input type="number" value={numberB} onChange={(e) => setNumberB(e.target.value)} />
-                    </div>
-                    <button onClick={sendEncryptedSum} disabled={loading} className="action-button">
-                        {loading ? 'Processing...' : 'Add Encrypted Numbers'}
-                    </button>
-                    {homEncryptedResult !== null && (
+                <div className="homomorphic-layout">
+                    <section className="homomorphic-panel">
+                        <h2>Homomorphic Addition (Numbers)</h2>
+                        <div className="input-group">
+                            <label>Enter Number A:</label>
+                            <input type="number" value={numberA} onChange={(e) => setNumberA(e.target.value)} />
+                            <label>Enter Number B:</label>
+                            <input type="number" value={numberB} onChange={(e) => setNumberB(e.target.value)} />
+                        </div>
+                        <button onClick={sendEncryptedSum} disabled={loading} className="action-button">
+                            {loading ? 'Processing...' : 'Add Encrypted Numbers'}
+                        </button>
+                    </section>
+                    <div className="results-panel">
                         <div className="result-box">
                             <h3>Encrypted Sum:</h3>
-                            <pre>{homEncryptedResult}</pre>
+                            <pre>{homEncryptedResult !== null ? homEncryptedResult : '-'}</pre>
                         </div>
-                    )}
-                    {homDecryptedResult !== null && (
                         <div className="result-box">
                             <h3>Decrypted Sum:</h3>
-                            <pre>{homDecryptedResult}</pre>
+                            <pre>{homDecryptedResult !== null ? homDecryptedResult : '-'}</pre>
                         </div>
-                    )}
-                </section>
+                    </div>
+                </div>
 
                 {error && (
                     <div className="error-message">

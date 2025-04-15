@@ -49,7 +49,7 @@ This is still a prototype, so functionality is limited to encryption and decrypt
 
 ### Backend
 - C++ compiler (version C++ 17 or higher)
-- CMake (version 3.10 or higher)
+- CMake (version 3.15 or higher)
 - Crow library (this library is already included)
 
 ---

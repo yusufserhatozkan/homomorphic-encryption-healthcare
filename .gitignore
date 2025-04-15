@@ -14,3 +14,33 @@ Thumbs.db
 
 # --- Logs ---
 *.log
+
+# --- Build ---
+backend/build/
+backend/build/cmake_install.cmake
+backend/build/.ninja_deps
+backend/build/.ninja_log
+backend/build/build.ninja
+backend/build/backend.exe
+backend/build/cmake_install.cmake
+backend/build/CMakeCache.txt
+backend/build/CMakeFiles/TargetDirectories.txt
+backend/build/CMakeFiles/CMakeConfigureLog.yaml
+backend/Debug/
+backend/Release/
+backend/x64/
+backend/backend.dir/
+
+# --- Visual Studio ---
+*.vcxproj
+*.vcxproj.filters
+*.sln
+*.pdb
+*.ilk
+*.obj
+*.tlog
+*.exe.recipe
+
+# --- General ---
+*.exe
+*.log

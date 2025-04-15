@@ -1,3 +1,0 @@
-C:/Users/Calin/Desktop/III/applied-cryptography-group08/backend/build/CMakeFiles/backend.dir
-C:/Users/Calin/Desktop/III/applied-cryptography-group08/backend/build/CMakeFiles/edit_cache.dir
-C:/Users/Calin/Desktop/III/applied-cryptography-group08/backend/build/CMakeFiles/rebuild_cache.dir

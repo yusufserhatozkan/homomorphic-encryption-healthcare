@@ -67,8 +67,7 @@ git clone https://gitlab.maastrichtuniversity.nl/I6360608/applied-cryptography-g
 
 #### **2.1 Run the backend (Linux/MacOS)**
 ```bash
-cd applied-cryptography-group08/backend
-cd build
+cd applied-cryptography-group08/backend/build
 ./backend
 ```
 

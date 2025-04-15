@@ -75,13 +75,11 @@ If running does not work, you would need to recompile.
 
 #### **2.2 Compile the backend on Windows**
 ```bash
-cd applied-cryptography-group08\backend\build
-Remove-Item -Recurse -Force .\*
-cd ..
-cd ..
-cmake -B backend/build -S 
-cmake --build backend/build
-cd backend\build
+Remove-Item -Recurse -Force backend\build
+mkdir backend\build
+cmake -B backend/build -S backend
+cmake --build backend/build --config Debug
+cd backend\build\Debug
 .\backend.exe
 ```
 

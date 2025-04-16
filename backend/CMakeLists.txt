@@ -14,3 +14,20 @@ elseif(UNIX AND NOT APPLE)
     target_link_libraries(backend pthread)
 endif()
 
+# Testing Files
+include(FetchContent)
+FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG release-1.11.0
+)
+FetchContent_MakeAvailable(googletest)
+
+# Create test executable
+add_executable(csv_tests tests/csv_handler_test.cpp)
+target_link_libraries(csv_tests gtest_main)
+
+# Enable testing
+enable_testing()
+add_test(NAME csv_tests COMMAND csv_tests)
+

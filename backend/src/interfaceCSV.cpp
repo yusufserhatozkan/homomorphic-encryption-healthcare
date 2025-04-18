@@ -11,19 +11,29 @@
 #include "crow.h"
 #include "CORSMiddleware.h"
 
-// Class to handle CSV data operations, with both plain and encrypted versions
+/**
+ * @class CSVDataHandler
+ * @brief Handles operations on CSV data, including loading, column extraction,
+ *        basic calculations (sum, average), and encryption/decryption.
+ */
 class CSVDataHandler {
-private:
-    std::vector<std::vector<double>> data;
-    std::string filename;
-    const int SECRET_KEY = 1337;  // Same key as in main.cpp
+    std::vector<std::vector<double>> data; ///< Stores the CSV data as a 2D vector.
+    std::string filename; ///< Name of the CSV file being processed.
+    const int SECRET_KEY = 1337; ///< Secret key used for encryption and decryption.
 
 public:
+    /**
+     * @brief Constructor to initialize the handler with a CSV file.
+     * @param file The name of the CSV file to load.
+     */
     CSVDataHandler(const std::string& file) : filename(file) {
         loadCSVData();
     }
 
-    // Load data from CSV file
+    /**
+     * @brief Loads data from the specified CSV file.
+     * @return True if the file is successfully loaded, false otherwise.
+     */
     bool loadCSVData() {
         std::ifstream file(filename);
         if (!file.is_open()) {
@@ -55,7 +65,11 @@ public:
         return true;
     }
 
-    // Get column of data by index
+    /**
+     * @brief Extracts a specific column from the CSV data.
+     * @param columnIndex The index of the column to extract.
+     * @return A vector containing the values of the specified column.
+     */
     std::vector<double> getColumn(int columnIndex) const {
         std::vector<double> column;
         for (const auto& row : data) {
@@ -66,30 +80,50 @@ public:
         return column;
     }
 
-    // Calculate sum of a column
+    /**
+     * @brief Calculates the sum of a specific column.
+     * @param columnIndex The index of the column to sum.
+     * @return The sum of the column values.
+     */
     double calculateSum(int columnIndex) const {
         auto column = getColumn(columnIndex);
         return std::accumulate(column.begin(), column.end(), 0.0);
     }
 
-    // Calculate average of a column
+    /**
+     * @brief Calculates the average of a specific column.
+     * @param columnIndex The index of the column to average.
+     * @return The average of the column values.
+     */
     double calculateAverage(int columnIndex) const {
         auto column = getColumn(columnIndex);
         if (column.empty()) return 0.0;
         return calculateSum(columnIndex) / column.size();
     }
 
-    // "Encrypt" a value (simple simulation)
+    /**
+     * @brief Encrypts a single value using a simple multiplication-based encryption.
+     * @param value The value to encrypt.
+     * @return The encrypted value.
+     */
     int encryptValue(double value) const {
         return static_cast<int>(value * SECRET_KEY);
     }
 
-    // "Decrypt" a value
+    /**
+     * @brief Decrypts a single value using the inverse of the encryption process.
+     * @param encryptedValue The encrypted value to decrypt.
+     * @return The decrypted value.
+     */
     double decryptValue(int encryptedValue) const {
         return static_cast<double>(encryptedValue) / SECRET_KEY;
     }
 
-    // Get encrypted column
+    /**
+     * @brief Extracts and encrypts a specific column from the CSV data.
+     * @param columnIndex The index of the column to encrypt.
+     * @return A vector containing the encrypted values of the specified column.
+     */
     std::vector<int> getEncryptedColumn(int columnIndex) const {
         auto plainColumn = getColumn(columnIndex);
         std::vector<int> encryptedColumn;
@@ -101,14 +135,21 @@ public:
         return encryptedColumn;
     }
 
-    // Calculate encrypted sum (homomorphic property)
+    /**
+     * @brief Calculates the sum of an encrypted column using homomorphic properties.
+     * @param columnIndex The index of the column to sum.
+     * @return The encrypted sum of the column values.
+     */
     int calculateEncryptedSum(int columnIndex) const {
         auto encryptedColumn = getEncryptedColumn(columnIndex);
         return std::accumulate(encryptedColumn.begin(), encryptedColumn.end(), 0);
     }
 };
 
-// Add these CSV-related routes to your Crow application
+/**
+ * @brief Adds routes for CSV operations to the Crow application.
+ * @param app The Crow application instance.
+ */
 void addCSVRoutes(crow::App<CORSMiddleware>& app) {
     // Route to get sum of a column
     CROW_ROUTE(app, "/csv/sum")

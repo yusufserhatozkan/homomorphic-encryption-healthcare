@@ -3,9 +3,10 @@ project(CrowBackend)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Add include directories for Crow and GTest
 include_directories(${CMAKE_SOURCE_DIR}/libraries/crow/include)
 include_directories(${CMAKE_SOURCE_DIR}/libraries/asio/include)
-
+include_directories(${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include) # For GTest
 add_executable(backend src/main.cpp)
 
 if(WIN32)

@@ -2,6 +2,7 @@
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
+CMakeConfigureLog.yaml
 Makefile
 
 # --- System ---
@@ -11,6 +12,7 @@ Thumbs.db
 # --- IDEs ---
 .idea/
 .vscode/
+*.iml
 
 # --- Logs ---
 *.log

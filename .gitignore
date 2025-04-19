@@ -2,19 +2,17 @@
 .DS_Store
 Thumbs.db
 
-# --- IDEs ---
-.idea/
-.vscode/
-
-# --- Logs ---
-*.log
-
 # --- Build ---
 backend/build/
 backend/Debug/
 backend/Release/
 backend/x64/
 backend/backend.dir/
+
+# --- IDEs ---
+.idea/
+.vscode/
+*.iml
 
 # --- Visual Studio ---
 *.vcxproj
@@ -28,3 +26,6 @@ backend/backend.dir/
 
 # --- General ---
 *.exe
+
+# --- Logs ---
+*.log

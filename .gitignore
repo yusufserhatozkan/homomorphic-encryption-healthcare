@@ -1,18 +1,31 @@
-# --- CMake files ---
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-CMakeConfigureLog.yaml
-Makefile
-
 # --- System ---
 .DS_Store
 Thumbs.db
+
+# --- Build ---
+backend/build/
+backend/Debug/
+backend/Release/
+backend/x64/
+backend/backend.dir/
 
 # --- IDEs ---
 .idea/
 .vscode/
 *.iml
+
+# --- Visual Studio ---
+*.vcxproj
+*.vcxproj.filters
+*.sln
+*.pdb
+*.ilk
+*.obj
+*.tlog
+*.exe.recipe
+
+# --- General ---
+*.exe
 
 # --- Logs ---
 *.log

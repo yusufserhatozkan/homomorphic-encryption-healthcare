@@ -2,11 +2,9 @@
 #define HOMOMORPHIC_ENCRYPTION_H
 
 #include "../libraries/SEAL/native/src/seal/seal.h"
-
-
-
 #include <string>
 #include <sstream>
+#include <memory>
 
 class HomomorphicEncryption {
 public:
@@ -20,7 +18,6 @@ private:
     seal::EncryptionParameters parms;
     std::shared_ptr<seal::SEALContext> context;
 
-    seal::KeyGenerator keygen;
     seal::PublicKey public_key;
     seal::SecretKey secret_key;
 

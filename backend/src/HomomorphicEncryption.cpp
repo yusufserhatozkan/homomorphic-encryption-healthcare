@@ -14,13 +14,9 @@ HomomorphicEncryption::HomomorphicEncryption() {
         throw std::invalid_argument("SEALContext parameters are not valid!");
     }
 
-
     seal::KeyGenerator keygen(*context);
-    keygen.create_public_key(public_key); 
+    keygen.create_public_key(public_key);
     secret_key = keygen.secret_key();
-
-
-
 
     encryptor = new seal::Encryptor(*context, public_key);
     evaluator = new seal::Evaluator(*context);

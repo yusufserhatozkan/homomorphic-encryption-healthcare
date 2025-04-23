@@ -2,54 +2,28 @@
 #include <iostream>
 #include "CORSMiddleware.h"
 #include "interfaceCSV.cpp"
-
-/**
- * @file main.cpp
- * @brief Entry point for the backend server application. This file sets up the Crow framework,
- *        defines routes, and starts the server.
- */
+#include "HomomorphicEncryption.h"
 
 // Secret key used for simulated homomorphic encryption
 const int SECRET_KEY = 1337;
 
-/**
- * @brief Helper function to perform homomorphic addition on encrypted values.
- * @param encrypted_a The first encrypted value.
- * @param encrypted_b The second encrypted value.
- * @return The encrypted sum of the two values.
- */
-int homomorphic_add(int encrypted_a, int encrypted_b) {
+int normal_add(int encrypted_a, int encrypted_b) {
     return encrypted_a + encrypted_b;
 }
 
-/**
- * @brief Main function to initialize and run the backend server.
- *        Sets up routes and starts the Crow application.
- */
 int main() {
-    // Create a Crow application instance with CORS middleware
+    HomomorphicEncryption HE;
     crow::App<CORSMiddleware> app;
 
-    // Add CSV-related routes from the interfaceCSV module
+    // Dodaj CSV-routy — jeśli chcesz przekazać HE, zrób wersję addCSVRoutes(app, HE)
     addCSVRoutes(app);
 
-    /**
-     * @route /
-     * @brief Root route that returns a welcome message.
-     * @response Plain text message: "Welcome to the homomorphic backend!"
-     */
     CROW_ROUTE(app, "/")([]() {
         crow::response res("Welcome to the homomorphic backend!");
         res.set_header("Content-Type", "text/plain");
         return res;
     });
 
-    /**
-     * @route /json
-     * @brief Test route that returns a JSON response indicating the backend is running.
-     * @method GET
-     * @response JSON object with status and message fields.
-     */
     CROW_ROUTE(app, "/json").methods(crow::HTTPMethod::GET)
     ([](const crow::request& req) {
         crow::json::wvalue response;
@@ -62,16 +36,8 @@ int main() {
         return res;
     });
 
-    /**
-     * @route /add_encrypted
-     * @brief Route to perform homomorphic addition on two encrypted values.
-     * @method POST
-     * @request JSON object with fields "a" and "b" (encrypted integers).
-     * @response JSON object with the encrypted sum in the "result" field.
-     * @error 400 if "a" or "b" is missing, 500 for server errors.
-     */
     CROW_ROUTE(app, "/add_encrypted").methods(crow::HTTPMethod::POST)
-    ([](const crow::request& req) {
+    ([&HE](const crow::request& req) {
         std::cout << "[LOG] /add_encrypted hit!\n";
         std::cout << "[LOG] Body: " << req.body << std::endl;
 
@@ -87,14 +53,20 @@ int main() {
                 return res;
             }
 
-            int encrypted_a = json_data["a"].i();
-            int encrypted_b = json_data["b"].i();
+            int a = json_data["a"].i();
+            int b = json_data["b"].i();
 
-            int encrypted_sum = homomorphic_add(encrypted_a, encrypted_b);
-            std::cout << "[LOG] Encrypted sum: " << encrypted_sum << std::endl;
+            std::cout << "[LOG] Received values: a = " << a << ", b = " << b << std::endl;
+
+            std::string encrypted_a = HE.encrypt(a);
+            std::string encrypted_b = HE.encrypt(b);
+            std::string encrypted_result = HE.add(encrypted_a, encrypted_b);
+            int final_result = HE.decrypt(encrypted_result);
+
+            std::cout << "[LOG] Decrypted result: " << final_result << std::endl;
 
             crow::json::wvalue result;
-            result["result"] = encrypted_sum;
+            result["result"] = final_result;
             res.body = result.dump();
             res.code = 200;
         } catch (const std::exception& e) {
@@ -107,7 +79,6 @@ int main() {
         return res;
     });
 
-    // Start the backend server on port 18080
     std::cout << "Starting backend server on port 18080..." << std::endl;
     app.port(18080).multithreaded().run();
 

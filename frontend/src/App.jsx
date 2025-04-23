@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
-
+/*
 // === Encryption logic split into smaller parts ===
 const SECRET_KEY = 1337;
 
@@ -20,6 +20,7 @@ const encryptNumber = (num) => {
 const decryptNumber = (encrypted) => {
     return divideByKey(encrypted);
 };
+*/
 
 const API_BASE_URL = 'http://localhost:18080';
 
@@ -92,30 +93,27 @@ function App() {
     const sendEncryptedSum = async () => {
         const a = parseInt(numberA);
         const b = parseInt(numberB);
-
+    
         if (isNaN(a) || isNaN(b)) {
             setError('Please enter valid numbers');
             return;
         }
-
+    
         setLoading(true);
         setError(null);
-
-        const encryptedA = encryptNumber(a);
-        const encryptedB = encryptNumber(b);
-
+    
         try {
             const response = await fetch(`${API_BASE_URL}/add_encrypted`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ a: encryptedA, b: encryptedB }),
+                body: JSON.stringify({ a, b }),
             });
-
+    
             if (response.ok) {
                 const result = await response.json();
                 const encryptedSum = result.result;
                 setHomEncryptedResult(encryptedSum);
-                setHomDecryptedResult(decryptNumber(encryptedSum));
+                setHomDecryptedResult(encryptedSum); 
             } else {
                 setError('Homomorphic addition failed');
             }
@@ -125,6 +123,7 @@ function App() {
             setLoading(false);
         }
     };
+    
 
     return (
         <div className="app-container">

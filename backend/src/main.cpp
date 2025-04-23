@@ -5,7 +5,7 @@
 #include "HomomorphicEncryption.h"
 
 // Secret key used for simulated homomorphic encryption
-const int SECRET_KEY = 1337;
+//const int SECRET_KEY = 1337;
 
 int normal_add(int encrypted_a, int encrypted_b) {
     return encrypted_a + encrypted_b;

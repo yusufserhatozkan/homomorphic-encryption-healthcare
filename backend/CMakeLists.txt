@@ -3,14 +3,15 @@ project(CrowBackend)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Add include directories for Crow, ASIO, GTest, SEAL
+# Include directories
 include_directories(${CMAKE_SOURCE_DIR}/libraries/crow/include)
 include_directories(${CMAKE_SOURCE_DIR}/libraries/asio/include)
 include_directories(${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include)
-include_directories(${CMAKE_SOURCE_DIR}/libraries/SEAL/native/src)
 
-# Add SEAL as subdirectory
+# Add SEAL
 add_subdirectory(libraries/SEAL)
+
+add_definitions(-DCROW_JSON_NO_ERROR_HANDLER)
 
 # Build backend executable (Crow + Homomorphic encryption)
 add_executable(backend

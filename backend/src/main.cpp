@@ -15,7 +15,6 @@ int main() {
     HomomorphicEncryption HE;
     crow::App<CORSMiddleware> app;
 
-    // Dodaj CSV-routy — jeśli chcesz przekazać HE, zrób wersję addCSVRoutes(app, HE)
     addCSVRoutes(app);
 
     CROW_ROUTE(app, "/")([]() {
@@ -55,6 +54,7 @@ int main() {
 
             int a = json_data["a"].i();
             int b = json_data["b"].i();
+
 
             std::cout << "[LOG] Received values: a = " << a << ", b = " << b << std::endl;
 

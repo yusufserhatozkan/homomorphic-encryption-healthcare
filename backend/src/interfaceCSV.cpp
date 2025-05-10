@@ -202,12 +202,20 @@ void addCSVRoutes(crow::App<CORSMiddleware>& app) {
             std::cout << "Processing CSV average request for file: " << filename
                       << ", column: " << column << std::endl;
 
-            CSVDataHandler handler(filename);
-            double average = handler.calculateAverage(column);
-            std::cout << "Calculated average: " << average << std::endl;
+            bool encrypted = json_data.has("encrypted") ? json_data["encrypted"].b() : false;
 
-            crow::json::wvalue result;
-            result["average"] = average;
+            CSVDataHandler handler(filename);
+            crow::json::wvalue result;  // Add this line to declare the result variable
+            double average;
+            if (encrypted) {
+                average = handler.calculateEncryptedAverage(column);
+                result["encrypted_average"] = average;
+                std::cout << "Returning encrypted average: " << average << std::endl;
+            } else {
+                average = handler.calculateAverage(column);
+                result["average"] = average;
+                std::cout << "Returning regular average: " << average << std::endl;
+            }
 
             res.body = result.dump();
             res.code = 200;

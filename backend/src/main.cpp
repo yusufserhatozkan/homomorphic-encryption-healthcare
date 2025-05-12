@@ -61,6 +61,7 @@ int main() {
             std::string encrypted_a = HE.encrypt(a);
             std::string encrypted_b = HE.encrypt(b);
             std::string encrypted_result = HE.add(encrypted_a, encrypted_b);
+            std::cout << "[LOG] Encrypted result: " << encrypted_result << std::endl;
             int final_result = HE.decrypt(encrypted_result);
 
             std::cout << "[LOG] Decrypted result: " << final_result << std::endl;

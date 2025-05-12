@@ -1,6 +1,3 @@
-//
-// Created by Luca Nichifor on 4/14/25.
-//
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -10,16 +7,16 @@
 #include <cmath>
 #include "crow.h"
 #include "CORSMiddleware.h"
+#include "HomomorphicEncryption.h"
 
 /**
  * @class CSVDataHandler
- * @brief Handles operations on CSV data, including loading, column extraction,
- *        basic calculations (sum, average), and encryption/decryption.
+ * @brief Handles operations on CSV data with homomorphic encryption capabilities
  */
 class CSVDataHandler {
     std::vector<std::vector<double>> data; ///< Stores the CSV data as a 2D vector.
     std::string filename; ///< Name of the CSV file being processed.
-    const int SECRET_KEY = 1337; ///< Secret key used for encryption and decryption.
+    HomomorphicEncryption he; ///< Homomorphic encryption instance using SEAL
 
 public:
     /**
@@ -30,10 +27,6 @@ public:
         loadCSVData();
     }
 
-    /**
-     * @brief Loads data from the specified CSV file.
-     * @return True if the file is successfully loaded, false otherwise.
-     */
     bool loadCSVData() {
         std::ifstream file(filename);
         if (!file.is_open()) {
@@ -65,11 +58,6 @@ public:
         return true;
     }
 
-    /**
-     * @brief Extracts a specific column from the CSV data.
-     * @param columnIndex The index of the column to extract.
-     * @return A vector containing the values of the specified column.
-     */
     std::vector<double> getColumn(int columnIndex) const {
         std::vector<double> column;
         for (const auto& row : data) {
@@ -80,76 +68,72 @@ public:
         return column;
     }
 
-    /**
-     * @brief Calculates the sum of a specific column.
-     * @param columnIndex The index of the column to sum.
-     * @return The sum of the column values.
-     */
     double calculateSum(int columnIndex) const {
         auto column = getColumn(columnIndex);
         return std::accumulate(column.begin(), column.end(), 0.0);
     }
 
     /**
-     * @brief Calculates the average of a specific column.
-     * @param columnIndex The index of the column to average.
-     * @return The average of the column values.
+     * @brief Calculates encrypted sum of a column using SEAL homomorphic encryption
+     * @param columnIndex The index of the column to sum
+     * @return The encrypted sum as an integer (after decryption)
      */
+    int calculateEncryptedSum(int columnIndex) const {
+        auto column = getColumn(columnIndex);
+        if (column.empty()) return 0;
+
+        std::cout << "Calculating encrypted sum for column " << columnIndex << std::endl;
+
+        // Encrypt first value
+        std::string encryptedSum = he.encrypt(static_cast<int>(column[0]));
+        std::cout << "First value: " << column[0] << ", encrypted: " << encryptedSum.substr(0, 20) << "..." << std::endl;
+
+        // Add remaining values homomorphically
+        for (size_t i = 1; i < column.size(); i++) {
+            std::string encryptedVal = he.encrypt(static_cast<int>(column[i]));
+            std::cout << "Adding value: " << column[i] << ", encrypted: " << encryptedVal.substr(0, 20) << "..." << std::endl;
+            encryptedSum = he.add(encryptedSum, encryptedVal);
+        }
+
+        // Decrypt the final result
+        int decryptedSum = he.decrypt(encryptedSum);
+        std::cout << "Final encrypted sum decrypted: " << decryptedSum << std::endl;
+
+        return decryptedSum;
+    }
+
     double calculateAverage(int columnIndex) const {
         auto column = getColumn(columnIndex);
         if (column.empty()) return 0.0;
         return calculateSum(columnIndex) / column.size();
     }
 
+    double calculateEncryptedAverage(int columnIndex) const {
+        auto column = getColumn(columnIndex);
+        if (column.empty()) return 0.0;
+
+        int encryptedSum = calculateEncryptedSum(columnIndex);
+        return static_cast<double>(encryptedSum) / column.size();
+    }
     /**
-     * @brief Encrypts a single value using a simple multiplication-based encryption.
-     * @param value The value to encrypt.
-     * @return The encrypted value.
+     * @brief Encrypts a value using SEAL homomorphic encryption
+     * @param value The value to encrypt
+     * @return The encrypted value as a string
      */
-    int encryptValue(double value) const {
-        return static_cast<int>(value * SECRET_KEY);
+    std::string encryptValue(double value) const {
+        return he.encrypt(static_cast<int>(value));
     }
 
     /**
-     * @brief Decrypts a single value using the inverse of the encryption process.
-     * @param encryptedValue The encrypted value to decrypt.
-     * @return The decrypted value.
+     * @brief Decrypts a value using SEAL homomorphic encryption
+     * @param encryptedValue The encrypted value
+     * @return The decrypted value as an integer
      */
-    double decryptValue(int encryptedValue) const {
-        return static_cast<double>(encryptedValue) / SECRET_KEY;
-    }
-
-    /**
-     * @brief Extracts and encrypts a specific column from the CSV data.
-     * @param columnIndex The index of the column to encrypt.
-     * @return A vector containing the encrypted values of the specified column.
-     */
-    std::vector<int> getEncryptedColumn(int columnIndex) const {
-        auto plainColumn = getColumn(columnIndex);
-        std::vector<int> encryptedColumn;
-
-        for (const auto& value : plainColumn) {
-            encryptedColumn.push_back(encryptValue(value));
-        }
-
-        return encryptedColumn;
-    }
-
-    /**
-     * @brief Calculates the sum of an encrypted column using homomorphic properties.
-     * @param columnIndex The index of the column to sum.
-     * @return The encrypted sum of the column values.
-     */
-    int calculateEncryptedSum(int columnIndex) const {
-        auto encryptedColumn = getEncryptedColumn(columnIndex);
-        return std::accumulate(encryptedColumn.begin(), encryptedColumn.end(), 0);
+    int decryptValue(const std::string& encryptedValue) const {
+        return he.decrypt(encryptedValue);
     }
 };
 
-/**
- * @brief Adds routes for CSV operations to the Crow application.
- * @param app The Crow application instance.
- */
 void addCSVRoutes(crow::App<CORSMiddleware>& app) {
     // Route to get sum of a column
     CROW_ROUTE(app, "/csv/sum")
@@ -169,20 +153,27 @@ void addCSVRoutes(crow::App<CORSMiddleware>& app) {
             int column = json_data["column"].i();
             bool encrypted = json_data.has("encrypted") ? json_data["encrypted"].b() : false;
 
+            std::cout << "Processing CSV sum request for file: " << filename
+                      << ", column: " << column
+                      << ", encrypted: " << (encrypted ? "yes" : "no") << std::endl;
+
             CSVDataHandler handler(filename);
 
             crow::json::wvalue result;
             if (encrypted) {
                 int encryptedSum = handler.calculateEncryptedSum(column);
                 result["encrypted_sum"] = encryptedSum;
+                std::cout << "Returning encrypted sum: " << encryptedSum << std::endl;
             } else {
                 double sum = handler.calculateSum(column);
                 result["sum"] = sum;
+                std::cout << "Returning regular sum: " << sum << std::endl;
             }
 
             res.body = result.dump();
             res.code = 200;
         } catch (const std::exception& e) {
+            std::cerr << "Error processing CSV sum: " << e.what() << std::endl;
             res.code = 500;
             res.body = "{\"error\": \"" + std::string(e.what()) + "\"}";
         }
@@ -208,15 +199,28 @@ void addCSVRoutes(crow::App<CORSMiddleware>& app) {
             std::string filename = json_data["file"].s();
             int column = json_data["column"].i();
 
-            CSVDataHandler handler(filename);
-            double average = handler.calculateAverage(column);
+            std::cout << "Processing CSV average request for file: " << filename
+                      << ", column: " << column << std::endl;
 
-            crow::json::wvalue result;
-            result["average"] = average;
+            bool encrypted = json_data.has("encrypted") ? json_data["encrypted"].b() : false;
+
+            CSVDataHandler handler(filename);
+            crow::json::wvalue result;  // Add this line to declare the result variable
+            double average;
+            if (encrypted) {
+                average = handler.calculateEncryptedAverage(column);
+                result["encrypted_average"] = average;
+                std::cout << "Returning encrypted average: " << average << std::endl;
+            } else {
+                average = handler.calculateAverage(column);
+                result["average"] = average;
+                std::cout << "Returning regular average: " << average << std::endl;
+            }
 
             res.body = result.dump();
             res.code = 200;
         } catch (const std::exception& e) {
+            std::cerr << "Error processing CSV average: " << e.what() << std::endl;
             res.code = 500;
             res.body = "{\"error\": \"" + std::string(e.what()) + "\"}";
         }

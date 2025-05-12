@@ -10,9 +10,9 @@ class HomomorphicEncryption {
 public:
     HomomorphicEncryption();
 
-    std::string encrypt(int value);
-    int decrypt(const std::string& encrypted_data);
-    std::string add(const std::string& encrypted_a, const std::string& encrypted_b);
+    std::string encrypt(int value) const;
+    int decrypt(const std::string& encrypted_data) const;
+    std::string add(const std::string& encrypted_a, const std::string& encrypted_b) const;
 
 private:
     seal::EncryptionParameters parms;
@@ -21,9 +21,9 @@ private:
     seal::PublicKey public_key;
     seal::SecretKey secret_key;
 
-    seal::Encryptor* encryptor;
-    seal::Evaluator* evaluator;
-    seal::Decryptor* decryptor;
+    mutable seal::Encryptor* encryptor;
+    mutable seal::Evaluator* evaluator;
+    mutable seal::Decryptor* decryptor;
 };
 
-#endif
+#endif // HOMOMORPHIC_ENCRYPTION_H

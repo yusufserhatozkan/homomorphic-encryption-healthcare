@@ -50,8 +50,9 @@ std::string from_base64(const std::string& input) {
 HomomorphicEncryption::HomomorphicEncryption() {
     parms = seal::EncryptionParameters(seal::scheme_type::bfv);
     parms.set_poly_modulus_degree(4096);
-    parms.set_coeff_modulus(seal::CoeffModulus::BFVDefault(4096));
-    parms.set_plain_modulus(256);
+    parms.set_coeff_modulus(seal::CoeffModulus::BFVDefault(4096)); 
+    parms.set_plain_modulus(16384); 
+
 
     context = std::make_shared<seal::SEALContext>(parms);
 
@@ -90,7 +91,8 @@ int HomomorphicEncryption::decrypt(const std::string& encrypted_data) const {
     seal::Plaintext plain;
     decryptor->decrypt(encrypted, plain);
 
-    return plain.data()[0];
+    return std::stoi(plain.to_string());
+
 }
 
 std::string HomomorphicEncryption::add(const std::string& encrypted_a, const std::string& encrypted_b) const {

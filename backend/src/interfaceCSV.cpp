@@ -96,7 +96,7 @@ public:
         }
 
         // Decrypt the final result
-        int decryptedSum = he.decrypt(encryptedSum);
+        int decryptedSum = he.decryptCSV(encryptedSum);
         std::cout << "Final encrypted sum decrypted: " << decryptedSum << std::endl;
 
         return decryptedSum;
@@ -115,23 +115,7 @@ public:
         int encryptedSum = calculateEncryptedSum(columnIndex);
         return static_cast<double>(encryptedSum) / column.size();
     }
-    /**
-     * @brief Encrypts a value using SEAL homomorphic encryption
-     * @param value The value to encrypt
-     * @return The encrypted value as a string
-     */
-    std::string encryptValue(double value) const {
-        return he.encrypt(static_cast<int>(value));
-    }
-
-    /**
-     * @brief Decrypts a value using SEAL homomorphic encryption
-     * @param encryptedValue The encrypted value
-     * @return The decrypted value as an integer
-     */
-    int decryptValue(const std::string& encryptedValue) const {
-        return he.decrypt(encryptedValue);
-    }
+    
 };
 
 void addCSVRoutes(crow::App<CORSMiddleware>& app) {

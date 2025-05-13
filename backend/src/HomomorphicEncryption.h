@@ -12,6 +12,7 @@ public:
 
     std::string encrypt(int value) const;
     int decrypt(const std::string& encrypted_data) const;
+    int decryptCSV(const std::string& encrypted_data) const;
     std::string add(const std::string& encrypted_a, const std::string& encrypted_b) const;
 
 private:

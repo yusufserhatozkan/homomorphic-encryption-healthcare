@@ -7,6 +7,8 @@ Welcome to the **Applied Cryptography - Group 08** Cloud Processing Module. This
 
 This component is part of the larger project *Encrypted Intelligence: Leveraging Homomorphic Encryption for Secure Healthcare Analytics*. It demonstrates how to securely process healthcare data in a cloud environment using homomorphic encryption—enabling computations on encrypted data without exposing sensitive information.
 
+To view the machine learning part of the project go to this repository : [Repository Containing the Machine learning Part](https://gitlab.maastrichtuniversity.nl/I6365974/machine-learning)   
+
 ## Table of Contents
 1. [Project Overview](#overview)
 2. [Features](#features)

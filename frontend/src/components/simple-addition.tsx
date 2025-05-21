@@ -17,8 +17,8 @@ interface SimpleAdditionProps {
 }
 
 export default function SimpleAddition({ setError }: SimpleAdditionProps) {
-  const [numberA, setNumberA] = useState<number>(0)
-  const [numberB, setNumberB] = useState<number>(0)
+  const [numberA, setNumberA] = useState<string>("0")
+  const [numberB, setNumberB] = useState<string>("0")
   const [homDecryptedResult, setHomDecryptedResult] = useState<number | null>(null)
   const { loading, encryptNumber } = useSeal()
 
@@ -28,21 +28,27 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
     try {
       if (loading) return
 
-      const encrypted1 = encryptNumber(numberA)
-      const encrypted2 = encryptNumber(numberB)
+      const parsedA = Number(numberA)
+      const parsedB = Number(numberB)
+
+      if (isNaN(parsedA) || isNaN(parsedB)) {
+        setError("Please enter valid numbers")
+        return
+      }
+
+      // Then use parsedA and parsedB for encryption
+      const encrypted1 = encryptNumber(parsedA)
+      const encrypted2 = encryptNumber(parsedB)
 
       if (!encrypted1 || !encrypted2) {
         setError("Encryption failed")
         return
       }
 
-      const encrypted1Base64 = encrypted1
-      const encrypted2Base64 = encrypted2
-
       const res = await fetch(API_BASE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cipher1Base64: encrypted1Base64, cipher2Base64: encrypted2Base64 }),
+        body: JSON.stringify({ cipher1Base64: encrypted1, cipher2Base64: encrypted2 }),
       })
 
       if (!res.ok) {
@@ -73,7 +79,7 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
               id="numberA"
               type="number"
               value={numberA}
-              onChange={(e) => setNumberA(Number(e.target.value))}
+              onChange={(e) => setNumberA(e.target.value)}
               placeholder="Enter first number"
             />
           </div>
@@ -83,7 +89,7 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
               id="numberB"
               type="number"
               value={numberB}
-              onChange={(e) => setNumberB(Number(e.target.value))}
+              onChange={(e) => setNumberB(e.target.value)}
               placeholder="Enter second number"
             />
           </div>

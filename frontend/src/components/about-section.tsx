@@ -1,7 +1,7 @@
 "use client"
 
 import { Info, Shield, Database, Calculator, Lock, Server, ArrowRight } from "lucide-react"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 
 interface AboutSectionProps {
@@ -10,7 +10,7 @@ interface AboutSectionProps {
 
 export default function AboutSection({ activeTab }: AboutSectionProps) {
   return (
-    <Card>
+    <Card className="my-4">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Info className="w-5 h-5" />
@@ -20,9 +20,6 @@ export default function AboutSection({ activeTab }: AboutSectionProps) {
       <CardContent className="space-y-4">
         {activeTab === "addition" ? <AdditionAboutContent /> : <DatasetAboutContent />}
       </CardContent>
-      <CardFooter className="text-sm text-muted-foreground border-t pt-4">
-        Information Security - Homomorphic Encryption Demo
-      </CardFooter>
     </Card>
   )
 }

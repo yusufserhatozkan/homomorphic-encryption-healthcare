@@ -14,7 +14,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("addition")
 
   return (
-    <main className="min-h-screen flex items-center p-6 bg-background">
+    <main className="min-h-screen mt-20 p-6 bg-background">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold tracking-tight">Homomorphic Encryption Demo</h1>
@@ -35,6 +35,8 @@ export default function Home() {
             </TabsTrigger>
           </TabsList>
 
+          <AboutSection activeTab={activeTab} />
+
           <TabsContent value="addition">
             <SimpleAddition setError={setError} />
           </TabsContent>
@@ -51,7 +53,6 @@ export default function Home() {
           </Alert>
         )}
 
-        <AboutSection activeTab={activeTab} />
       </div>
     </main>
   )

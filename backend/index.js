@@ -1,10 +1,17 @@
 import express, { json } from "express";
 import cors from "cors";
 import SEAL from "node-seal";
+import { log } from "./logger.js"; // Adjust path as needed
 
 const app = express();
 app.use(cors());
 app.use(json({ limit: "50mb" }));
+
+// Middleware logger
+app.use((req, res, next) => {
+  log("Request", `${req.method} ${req.originalUrl}`);
+  next();
+});
 
 let seal;
 let context, evaluator, encryptor, decryptor, encoder;
@@ -30,28 +37,26 @@ let publicKeyBase64, secretKeyBase64, parmsBase64;
   encryptor = seal.Encryptor(context, publicKey);
   decryptor = seal.Decryptor(context, secretKey);
 
-  // Serialize keys and parms to Base64 strings for sending to frontend
   parmsBase64 = parms.save();
   publicKeyBase64 = publicKey.save();
-  secretKeyBase64 = secretKey.save(); // Keep secret, don't send to frontend!
+  secretKeyBase64 = secretKey.save(); // Keep secret!
 
-  console.log("SEAL initialized on server");
+  log("Startup", "SEAL initialized on server");
 })();
 
-// New endpoint to expose encryption parameters + public key
 app.get("/api/seal-params", (req, res) => {
   if (!seal) {
     return res.status(503).json({ error: "SEAL not initialized yet" });
   }
-  res.json({
-    parms: parmsBase64,
-    publicKey: publicKeyBase64,
-    // optionally send slotCount, polyModulusDegree, etc if frontend needs
-  });
+
+  log("Params", "Sending encryption parameters and public key");
+  res.json({ parms: parmsBase64, publicKey: publicKeyBase64 });
 });
 
-// Homomorphic addition endpoint, unchanged except decryptor/encryptor usage with context
 app.post("/api/add", (req, res) => {
+  const start = Date.now();
+  log("Add", "Received encrypted addition request");
+
   try {
     const { cipher1Base64, cipher2Base64 } = req.body;
 
@@ -61,23 +66,28 @@ app.post("/api/add", (req, res) => {
     cipher1.load(context, cipher1Base64);
     cipher2.load(context, cipher2Base64);
 
+    log("Add", "Ciphertexts loaded successfully");
+
     const result = seal.CipherText();
     evaluator.add(cipher1, cipher2, result);
+    log("Add", "Homomorphic addition performed");
 
-    // Decrypt result immediately
     const plaintext = seal.PlainText();
     decryptor.decrypt(result, plaintext);
     const decoded = encoder.decode(plaintext);
     const plainResult = decoded[0];
 
-    res.json({ decryptedResult: plainResult }); // Only send plaintext result
+    const duration = Date.now() - start;
+    log("Add", `Decrypted result: ${plainResult} (Completed in ${duration}ms)`);
+
+    res.json({ decryptedResult: plainResult });
   } catch (err) {
-    console.error("Error during homomorphic addition:", err);
+    log("Error", `Homomorphic addition failed: ${err.message}`);
     res.status(500).json({ error: "Homomorphic addition failed" });
   }
 });
 
 const PORT = process.env.PORT || 18080;
 app.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+  log("Startup", `Server listening on http://localhost:${PORT}`);
 });

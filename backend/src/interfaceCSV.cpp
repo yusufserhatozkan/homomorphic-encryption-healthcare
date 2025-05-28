@@ -96,7 +96,7 @@ public:
         }
 
         // Decrypt the final result
-        int decryptedSum = he.decryptCSV(encryptedSum);
+        int decryptedSum = he.decrypt(encryptedSum);
         std::cout << "Final encrypted sum decrypted: " << decryptedSum << std::endl;
 
         return decryptedSum;

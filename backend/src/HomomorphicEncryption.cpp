@@ -1,58 +1,55 @@
 #include "HomomorphicEncryption.h"
 #include "seal/seal.h"
 #include <vector>
-#include "seal/util/streambuf.h"
-#include <string>
-#include <vector>
 #include <stdexcept>
+#include <cstdint>
 
-static const std::string base64_chars = 
-             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-             "abcdefghijklmnopqrstuvwxyz"
-             "0123456789+/";
+namespace {
+    const std::string base64_chars = 
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789+/";
 
-std::string to_base64(const std::string& input) {
-    std::string ret;
-    int val = 0, valb = -6;
-    for (uint8_t c : input) {
-        val = (val << 8) + c;
-        valb += 8;
-        while (valb >= 0) {
-            ret.push_back(base64_chars[(val >> valb) & 0x3F]);
-            valb -= 6;
+    std::string to_base64(const std::string& input) {
+        std::string ret;
+        int val = 0, valb = -6;
+        for (uint8_t c : input) {
+            val = (val << 8) + c;
+            valb += 8;
+            while (valb >= 0) {
+                ret.push_back(base64_chars[(val >> valb) & 0x3F]);
+                valb -= 6;
+            }
         }
+        if (valb > -6) ret.push_back(base64_chars[((val << 8) >> (valb + 8)) & 0x3F]);
+        while (ret.size() % 4) ret.push_back('=');
+        return ret;
     }
-    if (valb > -6) ret.push_back(base64_chars[((val << 8) >> (valb + 8)) & 0x3F]);
-    while (ret.size() % 4) ret.push_back('=');
-    return ret;
-}
 
-std::string from_base64(const std::string& input) {
-    std::vector<int> T(256, -1);
-    for (int i = 0; i < 64; i++) T[base64_chars[i]] = i;
+    std::string from_base64(const std::string& input) {
+        std::vector<int> T(256, -1);
+        for (int i = 0; i < 64; i++) T[base64_chars[i]] = i;
 
-    std::string output;
-    int val = 0, valb = -8;
-    for (uint8_t c : input) {
-        if (T[c] == -1) break;
-        val = (val << 6) + T[c];
-        valb += 6;
-        if (valb >= 0) {
-            output.push_back(char((val >> valb) & 0xFF));
-            valb -= 8;
+        std::string output;
+        int val = 0, valb = -8;
+        for (uint8_t c : input) {
+            if (T[c] == -1) break;
+            val = (val << 6) + T[c];
+            valb += 6;
+            if (valb >= 0) {
+                output.push_back(char((val >> valb) & 0xFF));
+                valb -= 8;
+            }
         }
+        return output;
     }
-    return output;
 }
-
-
 
 HomomorphicEncryption::HomomorphicEncryption() {
     parms = seal::EncryptionParameters(seal::scheme_type::bfv);
     parms.set_poly_modulus_degree(4096);
-    parms.set_coeff_modulus(seal::CoeffModulus::BFVDefault(4096)); 
-    parms.set_plain_modulus(16384); 
-
+    parms.set_coeff_modulus(seal::CoeffModulus::BFVDefault(4096));
+    parms.set_plain_modulus(131071);  // 2^17 - 1
 
     context = std::make_shared<seal::SEALContext>(parms);
 
@@ -70,15 +67,16 @@ HomomorphicEncryption::HomomorphicEncryption() {
 }
 
 std::string HomomorphicEncryption::encrypt(int value) const {
-    seal::Plaintext plain(std::to_string(value));
+    seal::Plaintext plain(parms.poly_modulus_degree());
+    plain.set_zero();
+    plain[0] = static_cast<uint64_t>(value);
+
     seal::Ciphertext encrypted;
     encryptor->encrypt(plain, encrypted);
 
     std::stringstream ss;
     encrypted.save(ss);
-
-    std::string binary_data = ss.str();
-    return to_base64(binary_data);
+    return to_base64(ss.str());
 }
 
 int HomomorphicEncryption::decrypt(const std::string& encrypted_data) const {
@@ -91,25 +89,12 @@ int HomomorphicEncryption::decrypt(const std::string& encrypted_data) const {
     seal::Plaintext plain;
     decryptor->decrypt(encrypted, plain);
 
-    return std::stoi(plain.to_string());
-
+    return static_cast<int>(plain[0]);
 }
 
-int HomomorphicEncryption::decryptCSV(const std::string& encrypted_data) const {
-    std::string binary_data = from_base64(encrypted_data);
 
-    seal::Ciphertext encrypted;
-    std::stringstream ss(binary_data);
-    encrypted.load(*context, ss);
-
-    seal::Plaintext plain;
-    decryptor->decrypt(encrypted, plain);
-
-    return plain.data()[0];
-
-}
-
-std::string HomomorphicEncryption::add(const std::string& encrypted_a, const std::string& encrypted_b) const {
+std::string HomomorphicEncryption::add(const std::string& encrypted_a, 
+                                      const std::string& encrypted_b) const {
     seal::Ciphertext a, b;
 
     std::string binary_a = from_base64(encrypted_a);
@@ -124,6 +109,5 @@ std::string HomomorphicEncryption::add(const std::string& encrypted_a, const std
 
     std::stringstream ssr;
     result.save(ssr);
-
     return to_base64(ssr.str());
 }

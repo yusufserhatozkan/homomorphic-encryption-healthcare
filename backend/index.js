@@ -1,7 +1,7 @@
 import express, { json } from "express";
 import cors from "cors";
 import SEAL from "node-seal";
-import { log } from "./logger.js"; // Adjust path as needed
+import { log } from "./logger.js";
 
 const app = express();
 app.use(cors());
@@ -14,8 +14,7 @@ app.use((req, res, next) => {
 });
 
 let seal;
-let context, evaluator, encryptor, decryptor, encoder;
-let publicKeyBase64, secretKeyBase64, parmsBase64;
+let context, evaluator;
 
 (async () => {
   seal = await SEAL();
@@ -28,37 +27,23 @@ let publicKeyBase64, secretKeyBase64, parmsBase64;
 
   context = seal.Context(parms, true, seal.SecurityLevel.tc128);
   evaluator = seal.Evaluator(context);
-  encoder = seal.BatchEncoder(context);
-
-  const keyGenerator = seal.KeyGenerator(context);
-  const secretKey = keyGenerator.secretKey();
-  const publicKey = keyGenerator.createPublicKey();
-
-  encryptor = seal.Encryptor(context, publicKey);
-  decryptor = seal.Decryptor(context, secretKey);
-
-  parmsBase64 = parms.save();
-  publicKeyBase64 = publicKey.save();
-  secretKeyBase64 = secretKey.save(); // Keep secret!
 
   log("Startup", "SEAL initialized on server");
 })();
-
-app.get("/api/seal-params", (req, res) => {
-  if (!seal) {
-    return res.status(503).json({ error: "SEAL not initialized yet" });
-  }
-
-  log("Params", "Sending encryption parameters and public key");
-  res.json({ parms: parmsBase64, publicKey: publicKeyBase64 });
-});
 
 app.post("/api/add", (req, res) => {
   const start = Date.now();
   log("Add", "Received encrypted addition request");
 
   try {
-    const { cipher1Base64, cipher2Base64 } = req.body;
+    const { cipher1Base64, cipher2Base64, publicKeyBase64 } = req.body;
+
+    // Load the client's public key
+    const publicKey = seal.PublicKey();
+    publicKey.load(context, publicKeyBase64);
+
+    // Create encryptor with client's public key
+    const encryptor = seal.Encryptor(context, publicKey);
 
     const cipher1 = seal.CipherText();
     const cipher2 = seal.CipherText();
@@ -72,15 +57,10 @@ app.post("/api/add", (req, res) => {
     evaluator.add(cipher1, cipher2, result);
     log("Add", "Homomorphic addition performed");
 
-    const plaintext = seal.PlainText();
-    decryptor.decrypt(result, plaintext);
-    const decoded = encoder.decode(plaintext);
-    const plainResult = decoded[0];
-
     const duration = Date.now() - start;
-    log("Add", `Decrypted result: ${plainResult} (Completed in ${duration}ms)`);
+    log("Add", `Homomorphic addition completed in ${duration}ms`);
 
-    res.json({ decryptedResult: plainResult });
+    res.json({ encryptedResult: result.save() });
   } catch (err) {
     log("Error", `Homomorphic addition failed: ${err.message}`);
     res.status(500).json({ error: "Homomorphic addition failed" });

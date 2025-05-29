@@ -20,13 +20,13 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
   const [numberA, setNumberA] = useState<string>("0")
   const [numberB, setNumberB] = useState<string>("0")
   const [homDecryptedResult, setHomDecryptedResult] = useState<number | null>(null)
-  const { loading, encryptNumber } = useSeal()
+  const { loading, encryptNumber, decryptToNumber, publicKey } = useSeal()
 
   const handleCalculate = async () => {
     setError(null)
 
     try {
-      if (loading) return
+      if (loading || !publicKey) return
 
       const parsedA = Number(numberA)
       const parsedB = Number(numberB)
@@ -36,7 +36,7 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
         return
       }
 
-      // Then use parsedA and parsedB for encryption
+      // Encrypt numbers on client side
       const encrypted1 = encryptNumber(parsedA)
       const encrypted2 = encryptNumber(parsedB)
 
@@ -45,10 +45,15 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
         return
       }
 
+      // Send encrypted numbers and public key to server for homomorphic addition
       const res = await fetch(API_BASE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cipher1Base64: encrypted1, cipher2Base64: encrypted2 }),
+        body: JSON.stringify({ 
+          cipher1Base64: encrypted1, 
+          cipher2Base64: encrypted2,
+          publicKeyBase64: publicKey 
+        }),
       })
 
       if (!res.ok) {
@@ -56,7 +61,15 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
       }
 
       const data = await res.json()
-      setHomDecryptedResult(data.decryptedResult)
+      
+      // Decrypt the result on client side
+      const decryptedResult = decryptToNumber(data.encryptedResult)
+      if (decryptedResult === null) {
+        setError("Decryption failed")
+        return
+      }
+
+      setHomDecryptedResult(decryptedResult)
     } catch (err: any) {
       setError(err.message || "Unknown error")
     }
@@ -95,7 +108,7 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleCalculate} disabled={loading} className="w-full">
+          <Button onClick={handleCalculate} disabled={loading || !publicKey} className="w-full">
             {loading ? "Processing..." : "Add Encrypted Numbers"}
           </Button>
         </CardFooter>
@@ -126,7 +139,7 @@ function ResultCard({ result }: { result: number | null }) {
             {result !== null ? result : "-"}
           </div>
           <p className="text-xs text-muted-foreground">
-            The result is sent back to the client as plain text after server-side homomorphic computation
+            The result is decrypted on the client side after server-side homomorphic computation
           </p>
         </div>
 
@@ -146,7 +159,7 @@ function ResultCard({ result }: { result: number | null }) {
             </div>
             <div className="p-2 border rounded-md">
               <div className="font-medium mb-1">Decrypt</div>
-              <div className="text-muted-foreground">Server-side</div>
+              <div className="text-muted-foreground">Client-side</div>
             </div>
           </div>
         </div>

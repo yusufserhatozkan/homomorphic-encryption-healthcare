@@ -7,6 +7,8 @@ export const useSeal = () => {
   const [context, setContext] = useState<any>(null);
   const [encoder, setEncoder] = useState<any>(null);
   const [encryptor, setEncryptor] = useState<any>(null);
+  const [decryptor, setDecryptor] = useState<any>(null);
+  const [publicKey, setPublicKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,26 +18,35 @@ export const useSeal = () => {
         const seal = await SEAL.default();
         setSeal(seal);
 
-        // Fetch params and public key from backend
-        const res = await fetch("http://localhost:18080/api/seal-params");
-        const { parms: parmsBase64, publicKey: publicKeyBase64 } = await res.json();
-
-        // Recreate parms
-        const parms = seal.EncryptionParameters();
-        parms.load(parmsBase64);
+        // Initialize SEAL with the same parameters as the server
+        const schemeType = seal.SchemeType.bfv;
+        const parms = seal.EncryptionParameters(schemeType);
+        parms.setPolyModulusDegree(4096);
+        parms.setCoeffModulus(seal.CoeffModulus.Create(4096, Int32Array.from([36, 36, 37])));
+        parms.setPlainModulus(seal.PlainModulus.Batching(4096, 20));
 
         // Create context
         const context = seal.Context(parms, true, seal.SecurityLevel.tc128);
 
-        // Create encoder, encryptor with public key
+        // Create encoder
         const encoder = seal.BatchEncoder(context);
-        const publicKey = seal.PublicKey();
-        publicKey.load(context, publicKeyBase64);
+
+        // Generate keys
+        const keyGenerator = seal.KeyGenerator(context);
+        const secretKey = keyGenerator.secretKey();
+        const publicKey = keyGenerator.createPublicKey();
+
+        // Store public key for requests
+        setPublicKey(publicKey.save());
+
+        // Create encryptor and decryptor
         const encryptor = seal.Encryptor(context, publicKey);
+        const decryptor = seal.Decryptor(context, secretKey);
 
         setContext(context);
         setEncoder(encoder);
         setEncryptor(encryptor);
+        setDecryptor(decryptor);
 
         setLoading(false);
       } catch (err) {
@@ -62,15 +73,23 @@ export const useSeal = () => {
     return ciphertext.save(); // return base64 string of ciphertext
   };
 
-  // We don't have secret key or decryptor on frontend, so decryptToNumber is not possible here
   const decryptToNumber = (ciphertextBase64: string) => {
-    console.warn("Frontend cannot decrypt without secret key");
-    return null;
+    if (!decryptor || !encoder) return null;
+
+    const ciphertext = seal.CipherText();
+    ciphertext.load(context, ciphertextBase64);
+
+    const plaintext = seal.PlainText();
+    decryptor.decrypt(ciphertext, plaintext);
+
+    const decoded = encoder.decode(plaintext);
+    return decoded[0];
   };
 
   return {
     loading,
     encryptNumber,
     decryptToNumber,
+    publicKey,
   };
 };

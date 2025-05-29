@@ -4,15 +4,11 @@
 #include "interfaceCSV.cpp"
 #include "HomomorphicEncryption.h"
 
-// Secret key used for simulated homomorphic encryption
-//const int SECRET_KEY = 1337;
-
-int normal_add(int encrypted_a, int encrypted_b) {
-    return encrypted_a + encrypted_b;
-}
 
 int main() {
-    HomomorphicEncryption HE;
+    bool use_ckks = false;   // true = CKKS, false = BFV
+    
+    HomomorphicEncryption HE(use_ckks); 
     crow::App<CORSMiddleware> app;
 
     addCSVRoutes(app);
@@ -36,9 +32,10 @@ int main() {
     });
 
     CROW_ROUTE(app, "/add_encrypted").methods(crow::HTTPMethod::POST)
-    ([&HE](const crow::request& req) {
+    ([&HE, use_ckks](const crow::request& req) {
         std::cout << "[LOG] /add_encrypted hit!\n";
         std::cout << "[LOG] Body: " << req.body << std::endl;
+        std::cout << "[LOG] Using scheme: " << (use_ckks ? "CKKS" : "BFV") << "\n";
 
         crow::response res;
 
@@ -52,9 +49,17 @@ int main() {
                 return res;
             }
 
-            int a = json_data["a"].i();
-            int b = json_data["b"].i();
-
+            double a, b;
+            if (use_ckks) {
+                a = json_data["a"].d();
+                b = json_data["b"].d();
+            } else {
+                a = static_cast<double>(json_data["a"].i());
+                b = static_cast<double>(json_data["b"].i());
+                if (a > 131070 || b > 131070) {
+                    throw std::runtime_error("Value too large for BFV scheme (max 131070)");
+                }
+            }
 
             std::cout << "[LOG] Received values: a = " << a << ", b = " << b << std::endl;
 
@@ -62,12 +67,16 @@ int main() {
             std::string encrypted_b = HE.encrypt(b);
             std::string encrypted_result = HE.add(encrypted_a, encrypted_b);
             std::cout << "[LOG] Encrypted result: " << encrypted_result << std::endl;
-            int final_result = HE.decrypt(encrypted_result);
-
+            double final_result = HE.decrypt(encrypted_result);
             std::cout << "[LOG] Decrypted result: " << final_result << std::endl;
 
             crow::json::wvalue result;
-            result["result"] = final_result;
+            if (use_ckks) {
+                result["result"] = final_result;
+            } else {
+                result["result"] = static_cast<int>(final_result);
+            }
+            
             res.body = result.dump();
             res.code = 200;
         } catch (const std::exception& e) {
@@ -81,6 +90,7 @@ int main() {
     });
 
     std::cout << "Starting backend server on port 18080..." << std::endl;
+    std::cout << "Using encryption scheme: " << (use_ckks ? "CKKS" : "BFV") << std::endl;
     app.port(18080).multithreaded().run();
 
     return 0;

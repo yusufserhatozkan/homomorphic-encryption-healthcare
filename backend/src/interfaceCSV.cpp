@@ -86,32 +86,38 @@ public:
      * @return The encrypted sum (after decryption)
      */
     double calculateEncryptedSum(int columnIndex) const {
-        auto column = getColumn(columnIndex);
-        if (column.empty()) return 0;
+    auto column = getColumn(columnIndex);
+    if (column.empty()) return 0;
 
-        std::cout << "Calculating encrypted sum for column " << columnIndex 
-                  << " using " << (use_ckks ? "CKKS" : "BFV") << " scheme" << std::endl;
+    std::cout << "\n\n===== Calculating encrypted sum for column " << columnIndex 
+              << " using " << (use_ckks ? "CKKS" : "BFV") << " =====" << std::endl;
 
-        // Encrypt first value
-        double firstValue = column[0];
-        std::string encryptedSum = he->encrypt(firstValue);
-        std::cout << "First value: " << firstValue 
-                  << ", encrypted: " << encryptedSum.substr(0, 20) << "..." << std::endl;
+    // Encrypt first value
+    double firstValue = column[0];
+    std::string encryptedSum = he->encrypt(firstValue);
+    std::cout << "Step 0: Value = " << firstValue 
+              << ", Ciphertext: " << encryptedSum.substr(0, 20) << "..."
+              << std::endl;
 
-        // Add remaining values homomorphically
-        for (size_t i = 1; i < column.size(); i++) {
-            double value = column[i];
-            std::string encryptedVal = he->encrypt(value);
-            encryptedSum = he->add(encryptedSum, encryptedVal);
-        }
-
-        // Decrypt the final result
-        double decryptedSum = he->decrypt(encryptedSum);
-        std::cout << "Final encrypted sum decrypted: " << decryptedSum << std::endl;
-
-        return decryptedSum;
+    // Add remaining values homomorphically
+    for (size_t i = 1; i < column.size(); i++) {
+        double value = column[i];
+        std::string encryptedVal = he->encrypt(value);
+        
+        std::cout << "\nStep " << i << ": Adding value = " << value << std::endl;
+        std::cout << " - Value ciphertext: " << encryptedVal.substr(0, 20) << "..." << std::endl;
+        
+        encryptedSum = he->add(encryptedSum, encryptedVal);
+        
     }
 
+    // Decrypt the final result
+    double decryptedSum = he->decrypt(encryptedSum);
+    std::cout << "\nFinal result decrypted: " << decryptedSum << std::endl;
+    std::cout << "=============================\n\n" << std::endl;
+
+    return decryptedSum;
+}
     double calculateAverage(int columnIndex) const {
         auto column = getColumn(columnIndex);
         if (column.empty()) return 0.0;
@@ -151,10 +157,13 @@ void addCSVRoutes(crow::App<CORSMiddleware>& app) {
             std::string scheme = json_data["scheme"].s();
 
             std::cout << "Processing CSV sum request\n"
-                      << " - File: " << filename << "\n"
-                      << " - Column: " << column << "\n"
-                      << " - Encrypted: " << (encrypted ? "yes" : "no") << "\n"
-                      << " - Scheme: " << scheme << std::endl;
+            << " - File: " << filename << "\n"
+            << " - Column: " << column << "\n"
+            << " - Encrypted: " << (encrypted ? "yes" : "no");
+            if (encrypted) {
+                std::cout << "\n - Scheme: " << scheme;
+            }
+            std::cout << std::endl;
 
             CSVDataHandler handler(filename, scheme);
 
@@ -204,10 +213,13 @@ void addCSVRoutes(crow::App<CORSMiddleware>& app) {
             std::string scheme = json_data["scheme"].s();
 
             std::cout << "Processing CSV average request\n"
-                      << " - File: " << filename << "\n"
-                      << " - Column: " << column << "\n"
-                      << " - Encrypted: " << (encrypted ? "yes" : "no") << "\n"
-                      << " - Scheme: " << scheme << std::endl;
+            << " - File: " << filename << "\n"
+            << " - Column: " << column << "\n"
+            << " - Encrypted: " << (encrypted ? "yes" : "no");
+            if (encrypted) {
+                std::cout << "\n - Scheme: " << scheme;
+            }
+            std::cout << std::endl;
 
             CSVDataHandler handler(filename, scheme);
             crow::json::wvalue result;

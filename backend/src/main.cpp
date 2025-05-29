@@ -66,10 +66,23 @@ int main() {
                 }
             }
 
+            std::cout << "\n===== Homomorphic Addition Request =====" << std::endl;
+            std::cout << "Scheme: " << scheme << std::endl;
+            std::cout << "a = " << a << std::endl;
+            std::cout << "b = " << b << std::endl;
+
             std::string encrypted_a = he_ptr->encrypt(a);
+            std::cout << "Encrypted a: " << encrypted_a.substr(0, 20) << "..." << std::endl;
+            
             std::string encrypted_b = he_ptr->encrypt(b);
+            std::cout << "Encrypted b: " << encrypted_b.substr(0, 20) << "..." << std::endl;
+
             std::string encrypted_result = he_ptr->add(encrypted_a, encrypted_b);
+            std::cout << "Encrypted result: " << encrypted_result.substr(0, 20) << "..." << std::endl;
+
             double final_result = he_ptr->decrypt(encrypted_result);
+            std::cout << "Decrypted result: " << final_result << std::endl;
+            std::cout << "=====================================\n" << std::endl;
 
             crow::json::wvalue result;
             result["result"] = final_result;

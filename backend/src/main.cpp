@@ -97,7 +97,7 @@ int main() {
         res.set_header("Content-Type", "application/json");
         return res;
     });
-    addCSVRoutes(app);
+    //addCSVRoutes(app);
 
     std::cout << "Starting backend server on port 18080..." << std::endl;
     app.port(18080).multithreaded().run();

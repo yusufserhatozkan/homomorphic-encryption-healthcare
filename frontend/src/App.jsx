@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:18080';
+const MINI_BACKEND_URL = 'http://localhost:18081'; // Szyfrowanie/deszyfrowanie
+const MAIN_BACKEND_URL = 'http://localhost:18080'; // Operacje na zaszyfrowanych danych
 
 function App() {
     const [backendData, setBackendData] = useState(null);
@@ -12,57 +13,15 @@ function App() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const [csvFile, setCsvFile] = useState("/Users/georg/Desktop/Project 2-2/applied-cryptography-group08/backend/src/data/sample.csv");
-    const [columnIndex, setColumnIndex] = useState(0);
-    const [useEncryption, setUseEncryption] = useState(false);
-    const [csvResult, setCsvResult] = useState(null);
-    
     const [numberScheme, setNumberScheme] = useState('bfv');
-    const [csvScheme, setCsvScheme] = useState('bfv');
 
     useEffect(() => {
         fetchBackendData();
     }, []);
 
-    const fetchCSVSum = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await axios.post(`${API_BASE_URL}/csv/sum`, {
-                file: csvFile,
-                column: parseInt(columnIndex),
-                encrypted: useEncryption,
-                scheme: csvScheme
-            });
-            setCsvResult(response.data);
-        } catch (err) {
-            setError(`CSV operation failed: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchCSVAverage = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await axios.post(`${API_BASE_URL}/csv/average`, {
-                file: csvFile,
-                column: parseInt(columnIndex),
-                encrypted: useEncryption,
-                scheme: csvScheme
-            });
-            setCsvResult(response.data);
-        } catch (err) {
-            setError(`CSV operation failed: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
-    
     const fetchBackendData = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/json`);
+            const response = await fetch(`${MAIN_BACKEND_URL}/json`);
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
             const data = await response.json();
             setBackendData(data);
@@ -84,25 +43,39 @@ function App() {
         setError(null);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/add_encrypted`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    a, 
-                    b,
-                    scheme: numberScheme
-                }),
+            // 1. Szyfrowanie liczb przez mini-backend
+            const encryptResponseA = await axios.post(`${MINI_BACKEND_URL}/encrypt`, {
+                value: a,
+                scheme: numberScheme
             });
 
-            if (response.ok) {
-                const result = await response.json();
-                setHomDecryptedResult(result.result);
-            } else {
-                const errorData = await response.json();
-                setError(`Homomorphic addition failed: ${errorData.error}`);
-            }
+            const encryptResponseB = await axios.post(`${MINI_BACKEND_URL}/encrypt`, {
+                value: b,
+                scheme: numberScheme
+            });
+
+            const encryptedA = encryptResponseA.data.ciphertext;
+            const encryptedB = encryptResponseB.data.ciphertext;
+
+            // 2. Przesłanie zaszyfrowanych danych do głównego backendu
+            const addResponse = await axios.post(`${MAIN_BACKEND_URL}/add_encrypted`, {
+                a: encryptedA,
+                b: encryptedB,
+                scheme: numberScheme
+            });
+
+            const encryptedResult = addResponse.data.ciphertext;
+
+            // 3. Deszyfrowanie wyniku przez mini-backend
+            const decryptResponse = await axios.post(`${MINI_BACKEND_URL}/decrypt`, {
+                ciphertext: encryptedResult,
+                scheme: numberScheme
+            });
+
+            setHomDecryptedResult(decryptResponse.data.value);
         } catch (err) {
-            setError('Failed to connect to homomorphic addition service');
+            console.error('Homomorphic operation error:', err);
+            setError(`Homomorphic operation failed: ${err.response?.data?.error || err.message}`);
         } finally {
             setLoading(false);
         }
@@ -180,46 +153,6 @@ function App() {
                         <p>{error}</p>
                     </div>
                 )}
-
-                <section className="csv-panel">
-                    <h2>CSV Data Operations</h2>
-                    
-                    <div className="input-group">
-                        <label>CSV File Path:</label>
-                        <input type="text" value={csvFile} onChange={(e) => setCsvFile(e.target.value)} />
-
-                        <label>Column Index:</label>
-                        <input type="number" value={columnIndex} onChange={(e) => setColumnIndex(e.target.value)} min="0" />
-
-                        <div className="encryption-toggle">
-                            <input 
-                                type="checkbox" 
-                                id="use-encryption" 
-                                checked={useEncryption}
-                                onChange={(e) => setUseEncryption(e.target.checked)} 
-                            />
-                            <label htmlFor="use-encryption">Use Encryption</label>
-                        </div>
-                        
-                        {useEncryption && renderSchemeSelector(csvScheme, setCsvScheme)}
-                    </div>
-
-                    <div className="button-group">
-                        <button onClick={fetchCSVSum} disabled={loading} className="action-button">
-                            Calculate Sum
-                        </button>
-                        <button onClick={fetchCSVAverage} disabled={loading} className="action-button">
-                            Calculate Average
-                        </button>
-                    </div>
-
-                    {csvResult && (
-                        <div className="result-box">
-                            <h3>CSV Operation Result:</h3>
-                            <pre>{JSON.stringify(csvResult, null, 2)}</pre>
-                        </div>
-                    )}
-                </section>
 
                 {backendData && (
                     <section className="server-status">

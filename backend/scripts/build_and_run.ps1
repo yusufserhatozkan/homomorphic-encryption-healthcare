@@ -1,7 +1,6 @@
 # build_and_run.ps1
-# Script for building and running the backend, assuming it is located in backend/scripts/
+# Updated script for building and running both backends
 
-# Set variables
 $projectRoot = Resolve-Path "$PSScriptRoot\.."
 $buildDir = "$projectRoot\build"
 $buildType = "Release"
@@ -24,11 +23,24 @@ cmake .. -G "Visual Studio 17 2022" -A x64
 # Build the project in Release mode
 cmake --build . --config $buildType
 
-# If the build succeeded, run the backend executable
-$exePath = Join-Path -Path $buildDir -ChildPath "$buildType\backend.exe"
-if (Test-Path $exePath) {
-    Write-Host "Running backend.exe..."
-    & $exePath
-} else {
-    Write-Host "backend.exe not found, something went wrong during the build."
+# Paths to executables
+$miniBackendExe = Join-Path -Path $buildDir -ChildPath "$buildType\mini-backend.exe"
+$mainBackendExe = Join-Path -Path $buildDir -ChildPath "$buildType\main-backend.exe"
+
+# Check if executables exist
+if (-not (Test-Path $miniBackendExe)) {
+    Write-Host "mini-backend.exe not found, build failed."
+    exit 1
 }
+
+if (-not (Test-Path $mainBackendExe)) {
+    Write-Host "main-backend.exe not found, build failed."
+    exit 1
+}
+
+# Start mini-backend in a new window
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "& `"$miniBackendExe`""
+Start-Sleep -Seconds 2
+
+# Start main-backend in a new window
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "& `"$mainBackendExe`""

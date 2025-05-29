@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(CrowBackend)
+project(HomomorphicBackend)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -13,22 +13,29 @@ add_subdirectory(libraries/SEAL)
 
 add_definitions(-DCROW_JSON_NO_ERROR_HANDLER)
 
-# Build backend executable (Crow + Homomorphic encryption)
-add_executable(backend
-    src/main.cpp
+# Build mini-backend executable
+add_executable(mini-backend
+    src/mini-backend.cpp
     src/HomomorphicEncryption.cpp
 )
 
-# Link SEAL
-target_link_libraries(backend
-    SEAL::seal
+# Build main-backend executable
+add_executable(main-backend
+    src/main-backend.cpp
+    src/HomomorphicEncryption.cpp
 )
+
+# Link SEAL to both backends
+target_link_libraries(mini-backend SEAL::seal)
+target_link_libraries(main-backend SEAL::seal)
 
 # Windows-specific linking
 if(WIN32)
-    target_link_libraries(backend Ws2_32 Mswsock)
+    target_link_libraries(mini-backend Ws2_32 Mswsock)
+    target_link_libraries(main-backend Ws2_32 Mswsock)
 elseif(UNIX AND NOT APPLE)
-    target_link_libraries(backend pthread)
+    target_link_libraries(mini-backend pthread)
+    target_link_libraries(main-backend pthread)
 endif()
 
 # ----------- GTEST SECTION -------------

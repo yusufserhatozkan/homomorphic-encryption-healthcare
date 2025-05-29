@@ -4,19 +4,18 @@
 #include "seal/seal.h"
 #include <string>
 #include <memory>
+#include <stdexcept>
 
 class HomomorphicEncryption {
 public:
- 
-    HomomorphicEncryption(bool use_ckks = false);
-    
+    HomomorphicEncryption(bool use_ckks = false, bool generate_keys = true);
     ~HomomorphicEncryption();
 
     std::string encrypt(double value) const;
-    
     double decrypt(const std::string& encrypted_data) const;
-
     std::string add(const std::string& encrypted_a, const std::string& encrypted_b) const;
+    std::string serialize_public_key() const;
+    void load_public_key(const std::string& serialized_key);
 
 private:
     bool use_ckks; 
@@ -24,13 +23,19 @@ private:
     std::shared_ptr<seal::SEALContext> context;
     seal::PublicKey public_key;
     seal::SecretKey secret_key;
-    mutable seal::Encryptor* encryptor;
-    mutable seal::Evaluator* evaluator;
-    mutable seal::Decryptor* decryptor;
+    seal::RelinKeys relin_keys;
+    std::unique_ptr<seal::Encryptor> encryptor;
+    std::unique_ptr<seal::Evaluator> evaluator;
+    std::unique_ptr<seal::Decryptor> decryptor;
+    std::unique_ptr<seal::CKKSEncoder> ckks_encoder;
+    std::unique_ptr<seal::BatchEncoder> bfv_encoder;
+    double scale;
     
-
-    seal::CKKSEncoder* ckks_encoder;
-    double scale;  
+    std::string serialize(const seal::Ciphertext& ct) const;
+    seal::Ciphertext deserialize(const std::string& str) const;
+    void init_bfv();
+    void init_ckks();
+    void generate_keys();
 };
 
 #endif

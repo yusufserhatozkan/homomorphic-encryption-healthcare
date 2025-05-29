@@ -5,16 +5,13 @@
 #include "HomomorphicEncryption.h"
 
 int main() {
-    // Inicjalizacja instancji dla obu schematów
     HomomorphicEncryption he_bfv(false);   // BFV
     HomomorphicEncryption he_ckks(true);   // CKKS
 
     crow::App<CORSMiddleware> app;
 
-    // Middleware CORS
     app.loglevel(crow::LogLevel::Warning);
 
-    // Endpointy
     CROW_ROUTE(app, "/")
     .methods("GET"_method)
     ([](const crow::request& req) {
@@ -60,7 +57,6 @@ int main() {
             double a = json_data["a"].d();
             double b = json_data["b"].d();
 
-            // Walidacja dla BFV
             if (scheme == "bfv") {
                 if (a > 131070 || b > 131070) {
                     throw std::runtime_error("Value too large for BFV (max 131070)");
@@ -70,13 +66,11 @@ int main() {
                 }
             }
 
-            // Operacje kryptograficzne
             std::string encrypted_a = he_ptr->encrypt(a);
             std::string encrypted_b = he_ptr->encrypt(b);
             std::string encrypted_result = he_ptr->add(encrypted_a, encrypted_b);
             double final_result = he_ptr->decrypt(encrypted_result);
 
-            // Formatowanie wyniku
             crow::json::wvalue result;
             result["result"] = final_result;
             
@@ -90,11 +84,8 @@ int main() {
         res.set_header("Content-Type", "application/json");
         return res;
     });
-
-    // Dodanie endpointów CSV
     addCSVRoutes(app);
 
-    // Uruchomienie serwera
     std::cout << "Starting backend server on port 18080..." << std::endl;
     app.port(18080).multithreaded().run();
 

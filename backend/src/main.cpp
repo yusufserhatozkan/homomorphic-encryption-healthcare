@@ -4,93 +4,98 @@
 #include "interfaceCSV.cpp"
 #include "HomomorphicEncryption.h"
 
-
 int main() {
-    bool use_ckks = false;   // true = CKKS, false = BFV
-    
-    HomomorphicEncryption HE(use_ckks); 
+    // Inicjalizacja instancji dla obu schematów
+    HomomorphicEncryption he_bfv(false);   // BFV
+    HomomorphicEncryption he_ckks(true);   // CKKS
+
     crow::App<CORSMiddleware> app;
 
-    addCSVRoutes(app);
+    // Middleware CORS
+    app.loglevel(crow::LogLevel::Warning);
 
-    CROW_ROUTE(app, "/")([]() {
-        crow::response res("Welcome to the homomorphic backend!");
-        res.set_header("Content-Type", "text/plain");
-        return res;
+    // Endpointy
+    CROW_ROUTE(app, "/")
+    .methods("GET"_method)
+    ([](const crow::request& req) {
+        return "Welcome to the homomorphic backend!";
     });
 
-    CROW_ROUTE(app, "/json").methods(crow::HTTPMethod::GET)
-    ([](const crow::request& req) {
+    CROW_ROUTE(app, "/json")
+    .methods("GET"_method)
+    ([]() {
         crow::json::wvalue response;
         response["status"] = "ok";
         response["message"] = "Backend is running";
-
-        crow::response res;
-        res.set_header("Content-Type", "application/json");
-        res.body = response.dump();
-        return res;
+        return response;
     });
 
-    CROW_ROUTE(app, "/add_encrypted").methods(crow::HTTPMethod::POST)
-    ([&HE, use_ckks](const crow::request& req) {
-        std::cout << "[LOG] /add_encrypted hit!\n";
-        std::cout << "[LOG] Body: " << req.body << std::endl;
-        std::cout << "[LOG] Using scheme: " << (use_ckks ? "CKKS" : "BFV") << "\n";
-
+    CROW_ROUTE(app, "/add_encrypted")
+    .methods("POST"_method)
+    ([&](const crow::request& req) {
+        auto json_data = crow::json::load(req.body);
         crow::response res;
 
+        if (!json_data || 
+            !json_data.has("a") || 
+            !json_data.has("b") || 
+            !json_data.has("scheme")) {
+            res.code = 400;
+            res.body = "{\"error\": \"Missing required fields\"}";
+            return res;
+        }
+
         try {
-            auto json_data = crow::json::load(req.body);
-            if (!json_data || !json_data.has("a") || !json_data.has("b")) {
-                std::cout << "[ERROR] Missing 'a' or 'b' in JSON\n";
-                res.code = 400;
-                res.body = "{\"error\": \"Missing 'a' or 'b' field\"}";
-                res.set_header("Content-Type", "application/json");
-                return res;
+            std::string scheme = json_data["scheme"].s();
+            HomomorphicEncryption* he_ptr = nullptr;
+
+            if (scheme == "bfv") {
+                he_ptr = &he_bfv;
+            } else if (scheme == "ckks") {
+                he_ptr = &he_ckks;
+            } else {
+                throw std::runtime_error("Invalid scheme. Use 'bfv' or 'ckks'");
             }
 
-            double a, b;
-            if (use_ckks) {
-                a = json_data["a"].d();
-                b = json_data["b"].d();
-            } else {
-                a = static_cast<double>(json_data["a"].i());
-                b = static_cast<double>(json_data["b"].i());
+            double a = json_data["a"].d();
+            double b = json_data["b"].d();
+
+            // Walidacja dla BFV
+            if (scheme == "bfv") {
                 if (a > 131070 || b > 131070) {
-                    throw std::runtime_error("Value too large for BFV scheme (max 131070)");
+                    throw std::runtime_error("Value too large for BFV (max 131070)");
+                }
+                if (std::floor(a) != a || std::floor(b) != b) {
+                    throw std::runtime_error("BFV requires integer values");
                 }
             }
 
-            std::cout << "[LOG] Received values: a = " << a << ", b = " << b << std::endl;
+            // Operacje kryptograficzne
+            std::string encrypted_a = he_ptr->encrypt(a);
+            std::string encrypted_b = he_ptr->encrypt(b);
+            std::string encrypted_result = he_ptr->add(encrypted_a, encrypted_b);
+            double final_result = he_ptr->decrypt(encrypted_result);
 
-            std::string encrypted_a = HE.encrypt(a);
-            std::string encrypted_b = HE.encrypt(b);
-            std::string encrypted_result = HE.add(encrypted_a, encrypted_b);
-            std::cout << "[LOG] Encrypted result: " << encrypted_result << std::endl;
-            double final_result = HE.decrypt(encrypted_result);
-            std::cout << "[LOG] Decrypted result: " << final_result << std::endl;
-
+            // Formatowanie wyniku
             crow::json::wvalue result;
-            if (use_ckks) {
-                result["result"] = final_result;
-            } else {
-                result["result"] = static_cast<int>(final_result);
-            }
+            result["result"] = final_result;
             
             res.body = result.dump();
             res.code = 200;
         } catch (const std::exception& e) {
-            std::cout << "[ERROR] Exception: " << e.what() << std::endl;
-            res.code = 500;
-            res.body = "{\"error\": \"Server error: " + std::string(e.what()) + "\"}";
+            res.code = 400;
+            res.body = "{\"error\": \"" + std::string(e.what()) + "\"}";
         }
 
         res.set_header("Content-Type", "application/json");
         return res;
     });
 
+    // Dodanie endpointów CSV
+    addCSVRoutes(app);
+
+    // Uruchomienie serwera
     std::cout << "Starting backend server on port 18080..." << std::endl;
-    std::cout << "Using encryption scheme: " << (use_ckks ? "CKKS" : "BFV") << std::endl;
     app.port(18080).multithreaded().run();
 
     return 0;

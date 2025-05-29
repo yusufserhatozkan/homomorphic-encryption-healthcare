@@ -1,3 +1,4 @@
+/* App.css */
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -202,4 +203,46 @@ footer {
     flex-direction: column;
     gap: 2rem;
   }
+}
+
+/* Nowe style dla przycisków schematów */
+.scheme-selector {
+  margin-bottom: 1rem;
+}
+
+.scheme-options {
+  display: flex;
+  margin-top: 8px;
+}
+
+.scheme-btn {
+  padding: 8px 16px;
+  border: 1px solid #646cff;
+  background-color: transparent;
+  color: #646cff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+  flex: 1;
+  text-align: center;
+}
+
+.scheme-btn:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.scheme-btn:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
+}
+
+.scheme-btn.active {
+  background-color: #646cff;
+  color: white;
+}
+
+.scheme-btn:not(.active):hover {
+  background-color: rgba(100, 108, 255, 0.1);
 }

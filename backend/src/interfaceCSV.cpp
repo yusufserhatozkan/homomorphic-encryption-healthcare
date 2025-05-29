@@ -6,7 +6,6 @@
 #include <numeric>
 #include <cmath>
 #include "crow.h"
-#include "CORSMiddleware.h"
 #include "HomomorphicEncryption.h"
 
 /**
@@ -16,15 +15,23 @@
 class CSVDataHandler {
     std::vector<std::vector<double>> data; ///< Stores the CSV data as a 2D vector.
     std::string filename; ///< Name of the CSV file being processed.
-    HomomorphicEncryption he; ///< Homomorphic encryption instance using SEAL
+    HomomorphicEncryption* he; ///< Homomorphic encryption instance using SEAL
+    bool use_ckks; ///< Flag to indicate if using CKKS scheme
 
 public:
     /**
-     * @brief Constructor to initialize the handler with a CSV file.
+     * @brief Constructor to initialize the handler with a CSV file and scheme.
      * @param file The name of the CSV file to load.
+     * @param scheme The encryption scheme to use ("bfv" or "ckks")
      */
-    CSVDataHandler(const std::string& file) : filename(file) {
+    CSVDataHandler(const std::string& file, const std::string& scheme) : filename(file) {
+        use_ckks = (scheme == "ckks");
+        he = new HomomorphicEncryption(use_ckks);
         loadCSVData();
+    }
+
+    ~CSVDataHandler() {
+        delete he;
     }
 
     bool loadCSVData() {
@@ -74,29 +81,32 @@ public:
     }
 
     /**
-     * @brief Calculates encrypted sum of a column using SEAL homomorphic encryption
+     * @brief Calculates encrypted sum of a column using homomorphic encryption
      * @param columnIndex The index of the column to sum
-     * @return The encrypted sum as an integer (after decryption)
+     * @return The encrypted sum (after decryption)
      */
-    int calculateEncryptedSum(int columnIndex) const {
+    double calculateEncryptedSum(int columnIndex) const {
         auto column = getColumn(columnIndex);
         if (column.empty()) return 0;
 
-        std::cout << "Calculating encrypted sum for column " << columnIndex << std::endl;
+        std::cout << "Calculating encrypted sum for column " << columnIndex 
+                  << " using " << (use_ckks ? "CKKS" : "BFV") << " scheme" << std::endl;
 
         // Encrypt first value
-        std::string encryptedSum = he.encrypt(static_cast<int>(column[0]));
-        std::cout << "First value: " << column[0] << ", encrypted: " << encryptedSum.substr(0, 20) << "..." << std::endl;
+        double firstValue = column[0];
+        std::string encryptedSum = he->encrypt(firstValue);
+        std::cout << "First value: " << firstValue 
+                  << ", encrypted: " << encryptedSum.substr(0, 20) << "..." << std::endl;
 
         // Add remaining values homomorphically
         for (size_t i = 1; i < column.size(); i++) {
-            std::string encryptedVal = he.encrypt(static_cast<int>(column[i]));
-            std::cout << "Adding value: " << column[i] << ", encrypted: " << encryptedVal.substr(0, 20) << "..." << std::endl;
-            encryptedSum = he.add(encryptedSum, encryptedVal);
+            double value = column[i];
+            std::string encryptedVal = he->encrypt(value);
+            encryptedSum = he->add(encryptedSum, encryptedVal);
         }
 
         // Decrypt the final result
-        int decryptedSum = he.decrypt(encryptedSum);
+        double decryptedSum = he->decrypt(encryptedSum);
         std::cout << "Final encrypted sum decrypted: " << decryptedSum << std::endl;
 
         return decryptedSum;
@@ -112,10 +122,9 @@ public:
         auto column = getColumn(columnIndex);
         if (column.empty()) return 0.0;
 
-        int encryptedSum = calculateEncryptedSum(columnIndex);
-        return static_cast<double>(encryptedSum) / column.size();
+        double encryptedSum = calculateEncryptedSum(columnIndex);
+        return encryptedSum / column.size();
     }
-    
 };
 
 void addCSVRoutes(crow::App<CORSMiddleware>& app) {
@@ -127,27 +136,33 @@ void addCSVRoutes(crow::App<CORSMiddleware>& app) {
         crow::response res;
 
         try {
-            if (!json_data || !json_data.has("file") || !json_data.has("column")) {
+            if (!json_data || 
+                !json_data.has("file") || 
+                !json_data.has("column") || 
+                !json_data.has("scheme")) {
                 res.code = 400;
-                res.body = "{\"error\": \"Missing 'file' or 'column' field\"}";
+                res.body = "{\"error\": \"Missing required fields\"}";
                 return res;
             }
 
             std::string filename = json_data["file"].s();
             int column = json_data["column"].i();
-            bool encrypted = json_data.has("encrypted") ? json_data["encrypted"].b() : false;
+            bool encrypted = json_data["encrypted"].b();
+            std::string scheme = json_data["scheme"].s();
 
-            std::cout << "Processing CSV sum request for file: " << filename
-                      << ", column: " << column
-                      << ", encrypted: " << (encrypted ? "yes" : "no") << std::endl;
+            std::cout << "Processing CSV sum request\n"
+                      << " - File: " << filename << "\n"
+                      << " - Column: " << column << "\n"
+                      << " - Encrypted: " << (encrypted ? "yes" : "no") << "\n"
+                      << " - Scheme: " << scheme << std::endl;
 
-            CSVDataHandler handler(filename);
+            CSVDataHandler handler(filename, scheme);
 
             crow::json::wvalue result;
             if (encrypted) {
-                int encryptedSum = handler.calculateEncryptedSum(column);
-                result["encrypted_sum"] = encryptedSum;
-                std::cout << "Returning encrypted sum: " << encryptedSum << std::endl;
+                double sum = handler.calculateEncryptedSum(column);
+                result["sum"] = sum;
+                std::cout << "Returning encrypted sum: " << sum << std::endl;
             } else {
                 double sum = handler.calculateSum(column);
                 result["sum"] = sum;
@@ -174,26 +189,33 @@ void addCSVRoutes(crow::App<CORSMiddleware>& app) {
         crow::response res;
 
         try {
-            if (!json_data || !json_data.has("file") || !json_data.has("column")) {
+            if (!json_data || 
+                !json_data.has("file") || 
+                !json_data.has("column") || 
+                !json_data.has("scheme")) {
                 res.code = 400;
-                res.body = "{\"error\": \"Missing 'file' or 'column' field\"}";
+                res.body = "{\"error\": \"Missing required fields\"}";
                 return res;
             }
 
             std::string filename = json_data["file"].s();
             int column = json_data["column"].i();
+            bool encrypted = json_data["encrypted"].b();
+            std::string scheme = json_data["scheme"].s();
 
-            std::cout << "Processing CSV average request for file: " << filename
-                      << ", column: " << column << std::endl;
+            std::cout << "Processing CSV average request\n"
+                      << " - File: " << filename << "\n"
+                      << " - Column: " << column << "\n"
+                      << " - Encrypted: " << (encrypted ? "yes" : "no") << "\n"
+                      << " - Scheme: " << scheme << std::endl;
 
-            bool encrypted = json_data.has("encrypted") ? json_data["encrypted"].b() : false;
-
-            CSVDataHandler handler(filename);
-            crow::json::wvalue result;  // Add this line to declare the result variable
+            CSVDataHandler handler(filename, scheme);
+            crow::json::wvalue result;
             double average;
+            
             if (encrypted) {
                 average = handler.calculateEncryptedAverage(column);
-                result["encrypted_average"] = average;
+                result["average"] = average;
                 std::cout << "Returning encrypted average: " << average << std::endl;
             } else {
                 average = handler.calculateAverage(column);

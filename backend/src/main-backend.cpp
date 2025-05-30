@@ -7,11 +7,9 @@ int main() {
     HomomorphicEncryption he_bfv(false, false);  // BFV without key generation
     HomomorphicEncryption he_ckks(true, false);  // CKKS without key generation
     
-    // Use our CORS middleware
     crow::App<CORSMiddleware> app;
     app.loglevel(crow::LogLevel::Warning);
 
-    // Endpoint for homomorphic addition
     CROW_ROUTE(app, "/add_encrypted")
     .methods("POST"_method)
     ([&](const crow::request& req) {
@@ -23,6 +21,7 @@ int main() {
             !json_data.has("b") || 
             !json_data.has("scheme")) {
             response["error"] = "Missing required fields";
+            std::cout << "Homomorphic addition failed: Missing required fields" << std::endl;
             return crow::response(400, response);
         }
 
@@ -30,8 +29,16 @@ int main() {
             std::string scheme = json_data["scheme"].s();
             std::string encrypted_a = json_data["a"].s();
             std::string encrypted_b = json_data["b"].s();
+
+            auto log_cipher = [](const std::string& ct) -> std::string {
+                if (ct.empty()) return "[EMPTY]";
+                return ct.substr(0, std::min(20, (int)ct.length()));
+            };
             
-            // Perform homomorphic addition
+            std::cout << "Homomorphic addition | Scheme: " << scheme
+                      << " | A (first 20): " << log_cipher(encrypted_a)
+                      << " | B (first 20): " << log_cipher(encrypted_b) << std::endl;
+            
             std::string encrypted_result;
             if (scheme == "bfv") {
                 encrypted_result = he_bfv.add(encrypted_a, encrypted_b);
@@ -41,15 +48,18 @@ int main() {
                 throw std::runtime_error("Invalid scheme");
             }
             
+            std::cout << "Homomorphic addition result | Scheme: " << scheme
+                      << " | Result (first 20): " << log_cipher(encrypted_result) << std::endl;
+            
             response["ciphertext"] = encrypted_result;
             return crow::response(200, response);
         } catch (const std::exception& e) {
+            std::cout << "Homomorphic addition failed: " << e.what() << std::endl;
             response["error"] = e.what();
             return crow::response(500, response);
         }
     });
 
-    // Simple status endpoint
     CROW_ROUTE(app, "/json")
     .methods("GET"_method)
     ([]() {
@@ -59,7 +69,6 @@ int main() {
         return response;
     });
 
-    // Handle OPTIONS for all routes using regex
     CROW_ROUTE(app, "/")
     .methods("OPTIONS"_method)
     ([](const crow::request& req, crow::response& res) {

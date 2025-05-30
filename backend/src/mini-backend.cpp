@@ -7,11 +7,9 @@ int main() {
     HomomorphicEncryption he_bfv(false, true);   // BFV with key generation
     HomomorphicEncryption he_ckks(true, true);   // CKKS with key generation
 
-    // Use our CORS middleware
     crow::App<CORSMiddleware> app;
     app.loglevel(crow::LogLevel::Warning);
 
-    // Encryption endpoint
     CROW_ROUTE(app, "/encrypt")
     .methods("POST"_method)
     ([&](const crow::request& req) {
@@ -20,12 +18,16 @@ int main() {
         
         if (!json_data || !json_data.has("value") || !json_data.has("scheme")) {
             response["error"] = "Missing required fields";
+            std::cout << "Encryption failed: Missing required fields" << std::endl;
             return crow::response(400, response);
         }
 
         try {
             std::string scheme = json_data["scheme"].s();
             double value = json_data["value"].d();
+            
+            std::cout << "Encrypting | Scheme: " << scheme << " | Value: " << value << std::endl;
+            
             std::string ciphertext;
 
             if (scheme == "bfv") {
@@ -36,15 +38,22 @@ int main() {
                 throw std::runtime_error("Invalid scheme");
             }
             
+            std::string log_ciphertext = ciphertext.empty() 
+                ? "[EMPTY]" 
+                : ciphertext.substr(0, std::min(20, (int)ciphertext.length()));
+            
+            std::cout << "Encrypted | Scheme: " << scheme 
+                      << " | Ciphertext (first 20): " << log_ciphertext << std::endl;
+            
             response["ciphertext"] = ciphertext;
             return crow::response(200, response);
         } catch (const std::exception& e) {
+            std::cout << "Encryption failed: " << e.what() << std::endl;
             response["error"] = e.what();
             return crow::response(500, response);
         }
     });
 
-    // Decryption endpoint
     CROW_ROUTE(app, "/decrypt")
     .methods("POST"_method)
     ([&](const crow::request& req) {
@@ -53,12 +62,21 @@ int main() {
         
         if (!json_data || !json_data.has("ciphertext") || !json_data.has("scheme")) {
             response["error"] = "Missing required fields";
+            std::cout << "Decryption failed: Missing required fields" << std::endl;
             return crow::response(400, response);
         }
 
         try {
             std::string scheme = json_data["scheme"].s();
             std::string ciphertext = json_data["ciphertext"].s();
+            
+            std::string log_ciphertext = ciphertext.empty() 
+                ? "[EMPTY]" 
+                : ciphertext.substr(0, std::min(20, (int)ciphertext.length()));
+            
+            std::cout << "Decrypting | Scheme: " << scheme 
+                      << " | Ciphertext (first 20): " << log_ciphertext << std::endl;
+            
             double value;
 
             if (scheme == "bfv") {
@@ -69,9 +87,13 @@ int main() {
                 throw std::runtime_error("Invalid scheme");
             }
             
+            std::cout << "Decrypted | Scheme: " << scheme 
+                      << " | Value: " << value << std::endl;
+            
             response["value"] = value;
             return crow::response(200, response);
         } catch (const std::exception& e) {
+            std::cout << "Decryption failed: " << e.what() << std::endl;
             response["error"] = e.what();
             return crow::response(500, response);
         }

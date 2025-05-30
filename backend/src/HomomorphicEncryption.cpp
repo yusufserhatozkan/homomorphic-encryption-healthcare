@@ -5,6 +5,8 @@
 #include <cmath>
 #include <sstream>
 #include <iomanip>
+#include <chrono>       // added
+#include <iostream>     // added
 
 namespace {
     const std::string base64_chars = 
@@ -81,6 +83,8 @@ void HomomorphicEncryption::init_ckks() {
 }
 
 void HomomorphicEncryption::generate_keys() {
+    auto start = std::chrono::high_resolution_clock::now();  // timer start
+
     seal::KeyGenerator keygen(*context);
     secret_key = keygen.secret_key();
     keygen.create_public_key(public_key);
@@ -94,6 +98,10 @@ void HomomorphicEncryption::generate_keys() {
     } else {
         bfv_encoder = std::make_unique<seal::BatchEncoder>(*context);
     }
+
+    auto end = std::chrono::high_resolution_clock::now();    // timer end
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Key generation time: " << duration << " microseconds" << std::endl;
 }
 
 HomomorphicEncryption::~HomomorphicEncryption() = default;

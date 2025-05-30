@@ -1,12 +1,13 @@
 #include "crow.h"
 #include "HomomorphicEncryption.h"
 #include "CORSMiddleware.h"
+#include <chrono>  // for timing
 
 int main() {
     // Initialize HE without key generation
     HomomorphicEncryption he_bfv(false, false);  // BFV without key generation
     HomomorphicEncryption he_ckks(true, false);  // CKKS without key generation
-    
+
     // Use our CORS middleware
     crow::App<CORSMiddleware> app;
     app.loglevel(crow::LogLevel::Warning);
@@ -17,7 +18,7 @@ int main() {
     ([&](const crow::request& req) {
         auto json_data = crow::json::load(req.body);
         crow::json::wvalue response;
-        
+
         if (!json_data || 
             !json_data.has("a") || 
             !json_data.has("b") || 
@@ -30,9 +31,12 @@ int main() {
             std::string scheme = json_data["scheme"].s();
             std::string encrypted_a = json_data["a"].s();
             std::string encrypted_b = json_data["b"].s();
-            
-            // Perform homomorphic addition
+
             std::string encrypted_result;
+
+            auto start = std::chrono::high_resolution_clock::now();
+
+            // Perform homomorphic addition
             if (scheme == "bfv") {
                 encrypted_result = he_bfv.add(encrypted_a, encrypted_b);
             } else if (scheme == "ckks") {
@@ -40,7 +44,11 @@ int main() {
             } else {
                 throw std::runtime_error("Invalid scheme");
             }
-            
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            std::cout << "Homomorphic addition was done in " << duration_us << " microseconds\n";
+
             response["ciphertext"] = encrypted_result;
             return crow::response(200, response);
         } catch (const std::exception& e) {

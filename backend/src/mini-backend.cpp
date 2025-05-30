@@ -2,6 +2,7 @@
 #include "HomomorphicEncryption.h"
 #include "CORSMiddleware.h"
 #include <iostream>
+#include <chrono>
 
 int main() {
     HomomorphicEncryption he_bfv(false, true);   // BFV with key generation
@@ -17,7 +18,7 @@ int main() {
     ([&](const crow::request& req) {
         auto json_data = crow::json::load(req.body);
         crow::json::wvalue response;
-        
+
         if (!json_data || !json_data.has("value") || !json_data.has("scheme")) {
             response["error"] = "Missing required fields";
             return crow::response(400, response);
@@ -28,6 +29,8 @@ int main() {
             double value = json_data["value"].d();
             std::string ciphertext;
 
+            auto start = std::chrono::high_resolution_clock::now();
+
             if (scheme == "bfv") {
                 ciphertext = he_bfv.encrypt(value);
             } else if (scheme == "ckks") {
@@ -35,7 +38,11 @@ int main() {
             } else {
                 throw std::runtime_error("Invalid scheme");
             }
-            
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            std::cout << "Encryption was done in " << duration_us << " microseconds\n";
+
             response["ciphertext"] = ciphertext;
             return crow::response(200, response);
         } catch (const std::exception& e) {
@@ -50,7 +57,7 @@ int main() {
     ([&](const crow::request& req) {
         auto json_data = crow::json::load(req.body);
         crow::json::wvalue response;
-        
+
         if (!json_data || !json_data.has("ciphertext") || !json_data.has("scheme")) {
             response["error"] = "Missing required fields";
             return crow::response(400, response);
@@ -61,6 +68,8 @@ int main() {
             std::string ciphertext = json_data["ciphertext"].s();
             double value;
 
+            auto start = std::chrono::high_resolution_clock::now();
+
             if (scheme == "bfv") {
                 value = he_bfv.decrypt(ciphertext);
             } else if (scheme == "ckks") {
@@ -68,7 +77,11 @@ int main() {
             } else {
                 throw std::runtime_error("Invalid scheme");
             }
-            
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            std::cout << "Decryption was done in " << duration_us << " microseconds\n";
+
             response["value"] = value;
             return crow::response(200, response);
         } catch (const std::exception& e) {

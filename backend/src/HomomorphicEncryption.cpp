@@ -5,8 +5,8 @@
 #include <cmath>
 #include <sstream>
 #include <iomanip>
-#include <chrono>       // added
-#include <iostream>     // added
+#include <chrono>
+#include <iostream>
 
 namespace {
     const std::string base64_chars = 
@@ -83,7 +83,7 @@ void HomomorphicEncryption::init_ckks() {
 }
 
 void HomomorphicEncryption::generate_keys() {
-    auto start = std::chrono::high_resolution_clock::now();  // timer start
+    auto start = std::chrono::high_resolution_clock::now();
 
     seal::KeyGenerator keygen(*context);
     secret_key = keygen.secret_key();
@@ -99,9 +99,18 @@ void HomomorphicEncryption::generate_keys() {
         bfv_encoder = std::make_unique<seal::BatchEncoder>(*context);
     }
 
-    auto end = std::chrono::high_resolution_clock::now();    // timer end
+    auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+    // Calculate public key size by serializing
+    std::stringstream ss;
+    public_key.save(ss);
+    std::string pubkey_str = ss.str();
+    size_t pubkey_size_bytes = pubkey_str.size();
+
     std::cout << "Key generation time: " << duration << " microseconds" << std::endl;
+    std::cout << "Poly modulus degree: " << parms.poly_modulus_degree() << std::endl;
+    std::cout << "Key size: " << pubkey_size_bytes << " bytes" << std::endl;
 }
 
 HomomorphicEncryption::~HomomorphicEncryption() = default;

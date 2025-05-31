@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 class HomomorphicEncryption {
 public:
@@ -16,6 +17,11 @@ public:
     std::string add(const std::string& encrypted_a, const std::string& encrypted_b) const;
     std::string serialize_public_key() const;
     void load_public_key(const std::string& serialized_key);
+    
+    // New methods for CSV operations
+    std::vector<std::string> encrypt_array(const std::vector<double>& values) const;
+    std::string sum(const std::vector<std::string>& ciphertexts) const;
+    std::string multiply_plain(const std::string& ciphertext, double scalar) const;
 
 private:
     bool use_ckks; 

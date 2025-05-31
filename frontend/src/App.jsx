@@ -13,7 +13,13 @@ function App() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    const [csvFile, setCsvFile] = useState("");
+    const [columnIndex, setColumnIndex] = useState(0);
+    const [useEncryption, setUseEncryption] = useState(false);
+    const [csvResult, setCsvResult] = useState(null);
+    
     const [numberScheme, setNumberScheme] = useState('bfv');
+    const [csvScheme, setCsvScheme] = useState('bfv');
 
     useEffect(() => {
         fetchBackendData();
@@ -29,6 +35,83 @@ function App() {
             setError('Failed to connect to the server');
         }
     };
+
+    const processCSV = async (operation) => {
+        setLoading(true);
+        setError(null);
+        
+        try {
+            if (useEncryption) {
+                // 1. read csv by mini-backend
+                const readResponse = await axios.post(`${MINI_BACKEND_URL}/csv/read`, {
+                    file_path: csvFile,
+                    column_index: parseInt(columnIndex)
+                });
+                
+                const values = readResponse.data.values;
+                const count = values.length;
+                
+                // 2. Encrypt values form csv using mini-backend
+                const encryptedValues = [];
+                for (const value of values) {
+                    const encryptResponse = await axios.post(`${MINI_BACKEND_URL}/encrypt`, {
+                        value: value,
+                        scheme: csvScheme
+                    });
+                    encryptedValues.push(encryptResponse.data.ciphertext);
+                }
+                
+                // 3. Send encrypted values to main backend
+                const processResponse = await axios.post(`${MAIN_BACKEND_URL}/csv/${operation}`, {
+                    encrypted_values: encryptedValues,
+                    scheme: csvScheme,
+                    count: count
+                });
+                
+                const encryptedResult = processResponse.data.encrypted_result;
+                
+                // 4. Decrypt the result by mini-backend
+                const decryptResponse = await axios.post(`${MINI_BACKEND_URL}/decrypt`, {
+                    ciphertext: encryptedResult,
+                    scheme: csvScheme
+                });
+                
+                let resultValue = decryptResponse.data.value;
+                
+                if (operation === 'average' && count != 0) {
+                    resultValue = resultValue / count;
+                }
+                
+                setCsvResult({
+                    operation,
+                    result: resultValue,
+                    values_processed: count,
+                    encrypted: true
+                });
+            } else {
+                // Without encryption mini-backend does everything
+                const response = await axios.post(`${MINI_BACKEND_URL}/csv/${operation}`, {
+                    file_path: csvFile,
+                    column_index: parseInt(columnIndex)
+                });
+                
+                setCsvResult({
+                    operation,
+                    result: response.data.result,
+                    values_processed: response.data.values_processed,
+                    encrypted: false
+                });
+            }
+        } catch (err) {
+            console.error('CSV operation error:', err);
+            setError(`CSV operation failed: ${err.response?.data?.error || err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchCSVSum = () => processCSV('sum');
+    const fetchCSVAverage = () => processCSV('average');
 
     const sendEncryptedSum = async () => {
         const a = numberScheme === 'ckks' ? parseFloat(numberA) : parseInt(numberA);
@@ -153,6 +236,59 @@ function App() {
                         <p>{error}</p>
                     </div>
                 )}
+
+                <section className="csv-panel">
+                    <h2>CSV Data Operations</h2>
+                    
+                    <div className="input-group">
+                        <label>CSV File Path:</label>
+                        <input 
+                            type="text" 
+                            value={csvFile} 
+                            onChange={(e) => setCsvFile(e.target.value)} 
+                            placeholder="Absolute path to CSV file"
+                        />
+
+                        <label>Column Index:</label>
+                        <input 
+                            type="number" 
+                            value={columnIndex} 
+                            onChange={(e) => setColumnIndex(e.target.value)} 
+                            min="0" 
+                        />
+
+                        <div className="encryption-toggle">
+                            <input 
+                                type="checkbox" 
+                                id="use-encryption" 
+                                checked={useEncryption}
+                                onChange={(e) => setUseEncryption(e.target.checked)} 
+                            />
+                            <label htmlFor="use-encryption">Use Homomorphic Encryption</label>
+                        </div>
+                        
+                        {useEncryption && renderSchemeSelector(csvScheme, setCsvScheme)}
+                    </div>
+
+                    <div className="button-group">
+                        <button onClick={fetchCSVSum} disabled={loading} className="action-button">
+                            {loading ? 'Processing...' : 'Calculate Sum'}
+                        </button>
+                        <button onClick={fetchCSVAverage} disabled={loading} className="action-button">
+                            {loading ? 'Processing...' : 'Calculate Average'}
+                        </button>
+                    </div>
+
+                    {csvResult && (
+                        <div className="result-box">
+                            <h3>CSV Operation Result:</h3>
+                            <p><strong>Operation:</strong> {csvResult.operation}</p>
+                            <p><strong>Result:</strong> {csvResult.result}</p>
+                            <p><strong>Values processed:</strong> {csvResult.values_processed}</p>
+                            <p><strong>Encrypted:</strong> {csvResult.encrypted ? 'Yes' : 'No'}</p>
+                        </div>
+                    )}
+                </section>
 
                 {backendData && (
                     <section className="server-status">

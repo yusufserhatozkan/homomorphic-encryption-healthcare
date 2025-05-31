@@ -1,15 +1,142 @@
 #include "crow.h"
 #include "HomomorphicEncryption.h"
 #include "CORSMiddleware.h"
-#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
+
+
+static std::string log_cipher(const std::string& ct) {
+    if (ct.empty()) return "[EMPTY]";
+    return ct.substr(0, std::min(20, (int)ct.length()));
+}
+
+std::vector<double> read_csv(const std::string& file_path, int column_index) {
+    std::ifstream file(file_path);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open file");
+    }
+    
+    std::vector<double> values;
+    std::string line, cell;
+    
+    // Skip header
+    std::getline(file, line);
+    
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        int current_col = 0;
+        
+        while (std::getline(ss, cell, ',')) {
+            if (current_col++ == column_index) {
+                try {
+                    values.push_back(std::stod(cell));
+                } catch (...) {
+                    // Ignore conversion errors
+                }
+                break;
+            }
+        }
+    }
+    
+    return values;
+}
 
 int main() {
     HomomorphicEncryption he_bfv(false, true);   // BFV with key generation
     HomomorphicEncryption he_ckks(true, true);   // CKKS with key generation
 
-    crow::App<CORSMiddleware> app;
+    crow::App<CORSMiddleware> app; 
     app.loglevel(crow::LogLevel::Warning);
 
+    // CSV Endpoints
+    CROW_ROUTE(app, "/csv/read")
+    .methods("POST"_method)
+    ([&](const crow::request& req) {
+        auto json_data = crow::json::load(req.body);
+        crow::json::wvalue response;
+        
+        if (!json_data || !json_data.has("file_path") || !json_data.has("column_index")) {
+            response["error"] = "Missing required fields";
+            return crow::response(400, response);
+        }
+
+        try {
+            std::string file_path = json_data["file_path"].s();
+            int column_index = json_data["column_index"].i();
+            auto values = read_csv(file_path, column_index);
+            response["values"] = values;
+            return crow::response(200, response);
+        } catch (const std::exception& e) {
+            response["error"] = e.what();
+            return crow::response(500, response);
+        }
+    });
+
+    CROW_ROUTE(app, "/csv/sum") // sum for non-encrypted calculations
+    .methods("POST"_method)
+    ([&](const crow::request& req) {
+        auto json_data = crow::json::load(req.body);
+        crow::json::wvalue response;
+        
+        if (!json_data || !json_data.has("file_path") || !json_data.has("column_index")) {
+            response["error"] = "Missing required fields";
+            return crow::response(400, response);
+        }
+
+        try {
+            std::string file_path = json_data["file_path"].s();
+            int column_index = json_data["column_index"].i();
+            auto values = read_csv(file_path, column_index);
+            
+            double sum = 0.0;
+            for (const auto& val : values) {
+                sum += val;
+            }
+            
+            response["result"] = sum;
+            response["values_processed"] = values.size();
+            return crow::response(200, response);
+        } catch (const std::exception& e) {
+            response["error"] = e.what();
+            return crow::response(500, response);
+        }
+    });
+
+    CROW_ROUTE(app, "/csv/average") // average for non-encrypted calculations
+    .methods("POST"_method)
+    ([&](const crow::request& req) {
+        auto json_data = crow::json::load(req.body);
+        crow::json::wvalue response;
+        
+        if (!json_data || !json_data.has("file_path") || !json_data.has("column_index")) {
+            response["error"] = "Missing required fields";
+            return crow::response(400, response);
+        }
+
+        try {
+            std::string file_path = json_data["file_path"].s();
+            int column_index = json_data["column_index"].i();
+            auto values = read_csv(file_path, column_index);
+            
+            double sum = 0.0;
+            for (const auto& val : values) {
+                sum += val;
+            }
+            
+            double average = values.empty() ? 0.0 : sum / values.size();
+            
+            response["result"] = average;
+            response["values_processed"] = values.size();
+            return crow::response(200, response);
+        } catch (const std::exception& e) {
+            response["error"] = e.what();
+            return crow::response(500, response);
+        }
+    });
+
+    // Encryption Endpoints
     CROW_ROUTE(app, "/encrypt")
     .methods("POST"_method)
     ([&](const crow::request& req) {
@@ -18,18 +145,16 @@ int main() {
         
         if (!json_data || !json_data.has("value") || !json_data.has("scheme")) {
             response["error"] = "Missing required fields";
-            std::cout << "Encryption failed: Missing required fields" << std::endl;
             return crow::response(400, response);
         }
 
         try {
             std::string scheme = json_data["scheme"].s();
             double value = json_data["value"].d();
-            
+
             std::cout << "Encrypting | Scheme: " << scheme << " | Value: " << value << std::endl;
             
             std::string ciphertext;
-
             if (scheme == "bfv") {
                 ciphertext = he_bfv.encrypt(value);
             } else if (scheme == "ckks") {
@@ -38,12 +163,8 @@ int main() {
                 throw std::runtime_error("Invalid scheme");
             }
             
-            std::string log_ciphertext = ciphertext.empty() 
-                ? "[EMPTY]" 
-                : ciphertext.substr(0, std::min(20, (int)ciphertext.length()));
-            
             std::cout << "Encrypted | Scheme: " << scheme 
-                      << " | Ciphertext (first 20): " << log_ciphertext << std::endl;
+                      << " | Ciphertext (first 20): " << log_cipher << std::endl;
             
             response["ciphertext"] = ciphertext;
             return crow::response(200, response);
@@ -70,15 +191,12 @@ int main() {
             std::string scheme = json_data["scheme"].s();
             std::string ciphertext = json_data["ciphertext"].s();
             
-            std::string log_ciphertext = ciphertext.empty() 
-                ? "[EMPTY]" 
-                : ciphertext.substr(0, std::min(20, (int)ciphertext.length()));
+
             
             std::cout << "Decrypting | Scheme: " << scheme 
-                      << " | Ciphertext (first 20): " << log_ciphertext << std::endl;
+                      << " | Ciphertext (first 20): " << log_cipher << std::endl;
             
             double value;
-
             if (scheme == "bfv") {
                 value = he_bfv.decrypt(ciphertext);
             } else if (scheme == "ckks") {
@@ -118,14 +236,6 @@ int main() {
             response["error"] = e.what();
             return crow::response(500, response);
         }
-    });
-
-    // Handle OPTIONS for root route
-    CROW_ROUTE(app, "/")
-    .methods("OPTIONS"_method)
-    ([](const crow::request& req, crow::response& res) {
-        res.code = 200;
-        res.end();
     });
 
     std::cout << "Starting mini-backend on port 18081...\n";

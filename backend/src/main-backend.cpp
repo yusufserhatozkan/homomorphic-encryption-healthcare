@@ -3,6 +3,13 @@
 #include "CORSMiddleware.h"
 #include <chrono>  // for timing
 
+#if defined(_WIN32)
+    #include <windows.h>
+    #include <psapi.h>
+#else
+    #include <sys/resource.h>
+#endif
+
 int main() {
     // Initialize HE without key generation
     HomomorphicEncryption he_bfv(false, false);  // BFV without key generation
@@ -48,6 +55,17 @@ int main() {
             auto end = std::chrono::high_resolution_clock::now();
             auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             std::cout << "Homomorphic addition was done in " << duration_us << " microseconds\n";
+
+            // RAM usage (platform-specific)
+#if defined(_WIN32)
+            PROCESS_MEMORY_COUNTERS memInfo;
+            GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
+            std::cout << "RAM usage: " << (memInfo.WorkingSetSize / 1024) << " KB\n";
+#else
+            struct rusage usage;
+            getrusage(RUSAGE_SELF, &usage);
+            std::cout << "RAM usage: " << usage.ru_maxrss << " KB\n";
+#endif
 
             response["ciphertext"] = encrypted_result;
             return crow::response(200, response);

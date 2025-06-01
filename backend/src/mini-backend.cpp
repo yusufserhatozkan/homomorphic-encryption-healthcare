@@ -4,6 +4,13 @@
 #include <iostream>
 #include <chrono>
 
+#if defined(_WIN32)
+    #include <windows.h>
+    #include <psapi.h>
+#else
+    #include <sys/resource.h>
+#endif
+
 int main() {
     HomomorphicEncryption he_bfv(false, true);   // BFV with key generation
     HomomorphicEncryption he_ckks(true, true);   // CKKS with key generation
@@ -43,6 +50,17 @@ int main() {
             auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             std::cout << "Encryption was done in " << duration_us << " microseconds\n";
 
+            // RAM usage
+#if defined(_WIN32)
+            PROCESS_MEMORY_COUNTERS memInfo;
+            GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
+            std::cout << "RAM usage: " << (memInfo.WorkingSetSize / 1024) << " KB\n";
+#else
+            struct rusage usage;
+            getrusage(RUSAGE_SELF, &usage);
+            std::cout << "RAM usage: " << usage.ru_maxrss << " KB\n";
+#endif
+
             response["ciphertext"] = ciphertext;
             return crow::response(200, response);
         } catch (const std::exception& e) {
@@ -81,6 +99,17 @@ int main() {
             auto end = std::chrono::high_resolution_clock::now();
             auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             std::cout << "Decryption was done in " << duration_us << " microseconds\n";
+
+            // RAM usage
+#if defined(_WIN32)
+            PROCESS_MEMORY_COUNTERS memInfo;
+            GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
+            std::cout << "RAM usage: " << (memInfo.WorkingSetSize / 1024) << " KB\n";
+#else
+            struct rusage usage;
+            getrusage(RUSAGE_SELF, &usage);
+            std::cout << "RAM usage: " << usage.ru_maxrss << " KB\n";
+#endif
 
             response["value"] = value;
             return crow::response(200, response);

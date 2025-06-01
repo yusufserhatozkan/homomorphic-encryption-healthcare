@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const API_BASE_URL = "http://localhost:18080/api/add"
 
@@ -20,7 +21,7 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
   const [numberA, setNumberA] = useState<string>("0")
   const [numberB, setNumberB] = useState<string>("0")
   const [homDecryptedResult, setHomDecryptedResult] = useState<number | null>(null)
-  const { loading, encryptNumber, decryptToNumber, publicKey } = useSeal()
+  const { loading, encryptNumber, decryptToNumber, publicKey, schemeType, setSchemeType } = useSeal()
 
   const handleCalculate = async () => {
     setError(null)
@@ -52,7 +53,8 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
         body: JSON.stringify({ 
           cipher1Base64: encrypted1, 
           cipher2Base64: encrypted2,
-          publicKeyBase64: publicKey 
+          publicKeyBase64: publicKey,
+          schemeType
         }),
       })
 
@@ -86,6 +88,18 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
           <CardDescription>Enter two numbers to add them securely while they remain encrypted</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="scheme">Encryption Scheme</Label>
+            <Select value={schemeType} onValueChange={(value: 'bfv' | 'ckks') => setSchemeType(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select scheme" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bfv">BFV</SelectItem>
+                <SelectItem value="ckks">CKKS</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="numberA">First Number</Label>
             <Input

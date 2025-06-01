@@ -14,21 +14,35 @@ app.use((req, res, next) => {
 });
 
 let seal;
-let context, evaluator;
+let bfvContext, ckksContext;
+let bfvEvaluator, ckksEvaluator;
 
 (async () => {
-  seal = await SEAL();
+  try {
+    seal = await SEAL();
 
-  const schemeType = seal.SchemeType.bfv;
-  const parms = seal.EncryptionParameters(schemeType);
-  parms.setPolyModulusDegree(4096);
-  parms.setCoeffModulus(seal.CoeffModulus.Create(4096, Int32Array.from([36, 36, 37])));
-  parms.setPlainModulus(seal.PlainModulus.Batching(4096, 20));
+    // Initialize BFV scheme
+    const bfvSchemeType = seal.SchemeType.bfv;
+    const bfvParms = seal.EncryptionParameters(bfvSchemeType);
+    bfvParms.setPolyModulusDegree(4096);
+    bfvParms.setCoeffModulus(seal.CoeffModulus.Create(4096, Int32Array.from([36, 36, 37])));
+    bfvParms.setPlainModulus(seal.PlainModulus.Batching(4096, 20));
+    bfvContext = seal.Context(bfvParms, true, seal.SecurityLevel.tc128);
+    bfvEvaluator = seal.Evaluator(bfvContext);
 
-  context = seal.Context(parms, true, seal.SecurityLevel.tc128);
-  evaluator = seal.Evaluator(context);
+    // Initialize CKKS scheme
+    const ckksSchemeType = seal.SchemeType.ckks;
+    const ckksParms = seal.EncryptionParameters(ckksSchemeType);
+    ckksParms.setPolyModulusDegree(4096);
+    ckksParms.setCoeffModulus(seal.CoeffModulus.Create(4096, Int32Array.from([36, 36, 37])));
+    ckksContext = seal.Context(ckksParms, true, seal.SecurityLevel.tc128);
+    ckksEvaluator = seal.Evaluator(ckksContext);
 
-  log("Startup", "SEAL initialized on server");
+    log("Startup", "SEAL initialized on server with both BFV and CKKS schemes");
+  } catch (err) {
+    log("Error", `Failed to initialize SEAL: ${err.message}`);
+    process.exit(1);
+  }
 })();
 
 app.post("/api/add", (req, res) => {
@@ -36,7 +50,19 @@ app.post("/api/add", (req, res) => {
   log("Add", "Received encrypted addition request");
 
   try {
-    const { cipher1Base64, cipher2Base64, publicKeyBase64 } = req.body;
+    const { cipher1Base64, cipher2Base64, publicKeyBase64, schemeType } = req.body;
+
+    if (!schemeType || (schemeType !== 'bfv' && schemeType !== 'ckks')) {
+      throw new Error(`Invalid scheme type: ${schemeType}`);
+    }
+
+    // Select context and evaluator based on scheme
+    const context = schemeType === 'bfv' ? bfvContext : ckksContext;
+    const evaluator = schemeType === 'bfv' ? bfvEvaluator : ckksEvaluator;
+
+    if (!context || !evaluator) {
+      throw new Error(`Context or evaluator not initialized for scheme: ${schemeType}`);
+    }
 
     // Load the client's public key
     const publicKey = seal.PublicKey();
@@ -48,10 +74,14 @@ app.post("/api/add", (req, res) => {
     const cipher1 = seal.CipherText();
     const cipher2 = seal.CipherText();
 
-    cipher1.load(context, cipher1Base64);
-    cipher2.load(context, cipher2Base64);
+    try {
+      cipher1.load(context, cipher1Base64);
+      cipher2.load(context, cipher2Base64);
+    } catch (err) {
+      throw new Error(`Failed to load ciphertexts: ${err.message}`);
+    }
 
-    log("Add", "Ciphertexts loaded successfully");
+    log("Add", `Ciphertexts loaded successfully for ${schemeType} scheme`);
 
     const result = seal.CipherText();
     evaluator.add(cipher1, cipher2, result);
@@ -63,7 +93,7 @@ app.post("/api/add", (req, res) => {
     res.json({ encryptedResult: result.save() });
   } catch (err) {
     log("Error", `Homomorphic addition failed: ${err.message}`);
-    res.status(500).json({ error: "Homomorphic addition failed" });
+    res.status(500).json({ error: err.message || "Homomorphic addition failed" });
   }
 });
 

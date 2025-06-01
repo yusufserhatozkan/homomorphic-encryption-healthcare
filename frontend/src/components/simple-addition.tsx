@@ -50,8 +50,8 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
       const res = await fetch(API_BASE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          cipher1Base64: encrypted1, 
+        body: JSON.stringify({
+          cipher1Base64: encrypted1,
           cipher2Base64: encrypted2,
           publicKeyBase64: publicKey,
           schemeType
@@ -63,7 +63,7 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
       }
 
       const data = await res.json()
-      
+
       // Decrypt the result on client side
       const decryptedResult = decryptToNumber(data.encryptedResult)
       if (decryptedResult === null) {
@@ -72,8 +72,8 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
       }
 
       setHomDecryptedResult(decryptedResult)
-    } catch (err: any) {
-      setError(err.message || "Unknown error")
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Unknown error")
     }
   }
 
@@ -88,18 +88,6 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
           <CardDescription>Enter two numbers to add them securely while they remain encrypted</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="scheme">Encryption Scheme</Label>
-            <Select value={schemeType} onValueChange={(value: 'bfv' | 'ckks') => setSchemeType(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select scheme" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bfv">BFV</SelectItem>
-                <SelectItem value="ckks">CKKS</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           <div className="space-y-2">
             <Label htmlFor="numberA">First Number</Label>
             <Input
@@ -121,8 +109,20 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
             />
           </div>
         </CardContent>
-        <CardFooter>
-          <Button onClick={handleCalculate} disabled={loading || !publicKey} className="w-full">
+        <CardFooter className="flex flex-row gap-4">
+          <div className="flex">
+            <Label htmlFor="scheme" className="sr-only">Encryption Scheme</Label>
+            <Select value={schemeType} onValueChange={(value: 'bfv' | 'ckks') => setSchemeType(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select scheme" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bfv">BFV</SelectItem>
+                <SelectItem value="ckks">CKKS</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={handleCalculate} disabled={loading || !publicKey} className="flex-1">
             {loading ? "Processing..." : "Add Encrypted Numbers"}
           </Button>
         </CardFooter>

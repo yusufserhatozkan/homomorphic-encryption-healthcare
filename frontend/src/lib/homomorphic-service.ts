@@ -13,7 +13,7 @@ export const useSeal = () => {
   const [decryptor, setDecryptor] = useState<any>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [schemeType, setSchemeType] = useState<'bfv' | 'ckks'>('bfv');
+  const [schemeType, setSchemeType] = useState<"bfv" | "ckks">("bfv");
 
   useEffect(() => {
     const initializeSeal = async () => {
@@ -23,14 +23,15 @@ export const useSeal = () => {
         setSeal(seal);
 
         // Initialize SEAL with the selected scheme
-        const scheme = schemeType === 'bfv' ? seal.SchemeType.bfv : seal.SchemeType.ckks;
+        const scheme =
+          schemeType === "bfv" ? seal.SchemeType.bfv : seal.SchemeType.ckks;
         const parms = seal.EncryptionParameters(scheme);
         parms.setPolyModulusDegree(4096);
         parms.setCoeffModulus(
           seal.CoeffModulus.Create(4096, Int32Array.from([36, 36, 37])),
         );
-        
-        if (schemeType === 'bfv') {
+
+        if (schemeType === "bfv") {
           parms.setPlainModulus(seal.PlainModulus.Batching(4096, 20));
         }
 
@@ -38,7 +39,10 @@ export const useSeal = () => {
         const context = seal.Context(parms, true, seal.SecurityLevel.tc128);
 
         // Create encoder based on scheme
-        const encoder = schemeType === 'bfv' ? seal.BatchEncoder(context) : seal.CKKSEncoder(context);
+        const encoder =
+          schemeType === "bfv"
+            ? seal.BatchEncoder(context)
+            : seal.CKKSEncoder(context);
 
         // Generate keys
         const keyGenerator = seal.KeyGenerator(context);
@@ -79,7 +83,7 @@ export const useSeal = () => {
 
       try {
         let plaintext;
-        if (schemeType === 'bfv') {
+        if (schemeType === "bfv") {
           const vector = new Int32Array(encoder.slotCount).fill(0);
           vector[0] = num;
           plaintext = seal.PlainText();
@@ -132,7 +136,7 @@ export const useSeal = () => {
         decryptor.decrypt(ciphertext, plaintext);
 
         let result;
-        if (schemeType === 'bfv') {
+        if (schemeType === "bfv") {
           const decoded = encoder.decode(plaintext);
           result = decoded[0];
         } else {
@@ -201,4 +205,3 @@ export const useSeal = () => {
     runAdditionBenchmark,
   };
 };
-

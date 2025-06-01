@@ -97,6 +97,107 @@ app.post("/api/add", (req, res) => {
   }
 });
 
+app.post("/api/dataset", (req, res) => {
+  const start = Date.now();
+  log("Dataset", "Received dataset calculation request");
+
+  try {
+    const { encryptedValues, calculationType, publicKeyBase64, schemeType } = req.body;
+
+    if (!schemeType || (schemeType !== 'bfv' && schemeType !== 'ckks')) {
+      throw new Error(`Invalid scheme type: ${schemeType}`);
+    }
+
+    // Select context and evaluator based on scheme
+    const context = schemeType === 'bfv' ? bfvContext : ckksContext;
+    const evaluator = schemeType === 'bfv' ? bfvEvaluator : ckksEvaluator;
+
+    if (!context || !evaluator) {
+      throw new Error(`Context or evaluator not initialized for scheme: ${schemeType}`);
+    }
+
+    // Load the client's public key
+    const publicKey = seal.PublicKey();
+    publicKey.load(context, publicKeyBase64);
+
+    // Create encryptor with client's public key
+    const encryptor = seal.Encryptor(context, publicKey);
+
+    // Load all ciphertexts
+    const ciphertexts = encryptedValues.map(base64 => {
+      const cipher = seal.CipherText();
+      cipher.load(context, base64);
+      return cipher;
+    });
+
+    log("Dataset", `Loaded ${ciphertexts.length} ciphertexts for ${schemeType} scheme`);
+
+    // Perform the calculation based on type
+    let result;
+    switch (calculationType) {
+      case 'sum':
+        result = ciphertexts.reduce((acc, cipher) => {
+          const temp = seal.CipherText();
+          evaluator.add(acc, cipher, temp);
+          return temp;
+        });
+        break;
+
+      case 'average':
+        // First sum all values
+        const sum = ciphertexts.reduce((acc, cipher) => {
+          const temp = seal.CipherText();
+          evaluator.add(acc, cipher, temp);
+          return temp;
+        });
+        // Then divide by count (using plaintext division)
+        const count = ciphertexts.length;
+        const plainCount = seal.PlainText();
+        if (schemeType === 'bfv') {
+          const encoder = seal.BatchEncoder(context);
+          const vector = new Int32Array(encoder.slotCount).fill(0);
+          vector[0] = count;
+          encoder.encode(vector, plainCount);
+        } else {
+          const encoder = seal.CKKSEncoder(context);
+          const vector = new Float64Array(encoder.slotCount).fill(0);
+          vector[0] = count;
+          encoder.encode(vector, 1 << 20, plainCount);
+        }
+        result = seal.CipherText();
+        evaluator.dividePlain(sum, plainCount, result);
+        break;
+
+      case 'min':
+        result = ciphertexts.reduce((acc, cipher) => {
+          const temp = seal.CipherText();
+          evaluator.min(acc, cipher, temp);
+          return temp;
+        });
+        break;
+
+      case 'max':
+        result = ciphertexts.reduce((acc, cipher) => {
+          const temp = seal.CipherText();
+          evaluator.max(acc, cipher, temp);
+          return temp;
+        });
+        break;
+
+      default:
+        throw new Error(`Unsupported calculation type: ${calculationType}`);
+    }
+
+    const duration = Date.now() - start;
+    log("Dataset", `${calculationType} calculation completed in ${duration}ms`);
+
+    res.json({ encryptedResult: result.save() });
+  } catch (err) {
+    log("Error", `Dataset calculation failed: ${err.message}`);
+    res.status(500).json({ error: err.message || "Dataset calculation failed" });
+  }
+});
+
 const PORT = process.env.PORT || 18080;
 app.listen(PORT, () => {
   log("Startup", `Server listening on http://localhost:${PORT}`);

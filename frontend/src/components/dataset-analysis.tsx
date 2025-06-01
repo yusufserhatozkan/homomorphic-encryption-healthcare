@@ -1,212 +1,221 @@
-"use client"
-
-import { useState } from "react"
-import { Database, Save } from "lucide-react"
+import { useState, useCallback } from "react"
+import { Database, Upload, Calculator } from "lucide-react"
 import { useSeal } from "@/lib/homomorphic-service"
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import DatasetResultCard from "./dataset-result-card"
 
-// Sample healthcare dataset columns
-const healthcareColumns = [
-  { id: "age", name: "Age", type: "number" },
-  { id: "blood_pressure", name: "Blood Pressure", type: "number" },
-  { id: "glucose_level", name: "Glucose Level", type: "number" },
-  { id: "cholesterol", name: "Cholesterol", type: "number" },
-  { id: "bmi", name: "BMI", type: "number" },
-]
+interface DatasetAnalysisProps {
+  setError: (error: string | null) => void
+}
 
-export default function DatasetAnalysis() {
-  const [datasetValues, setDatasetValues] = useState<Record<string, number>>({
-    age: 45,
-    blood_pressure: 120,
-    glucose_level: 85,
-    cholesterol: 190,
-    bmi: 24.5,
-  })
+export default function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
+  const [dataset, setDataset] = useState<number[][]>([])
+  const [columnNames, setColumnNames] = useState<string[]>([])
+  const [selectedColumn, setSelectedColumn] = useState<string>("")
   const [calculationType, setCalculationType] = useState<string>("sum")
-  const [datasetResult, setDatasetResult] = useState<any>(null)
-  const { loading, encryptNumber } = useSeal()
-  const [updatingDataset, setUpdatingDataset] = useState(false)
+  const [datasetResult, setDatasetResult] = useState<{ type: string; value: number; column: string } | null>(null)
+  const { loading, encryptNumber, decryptToNumber, publicKey, schemeType, setSchemeType } = useSeal()
+  const [processingDataset, setProcessingDataset] = useState(false)
 
-  const handleInputChange = (columnId: string, value: string) => {
-    setDatasetValues((prev) => ({
-      ...prev,
-      [columnId]: Number.parseFloat(value) || 0,
-    }))
-  }
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
 
-  // This is just UI, not implementing actual functionality
-  const handleDatasetCalculation = () => {
-    // Simulate calculation result based on selected type
-    const mockResults = {
-      sum: 464.5,
-      average: 92.9,
-      median: 85,
-      max: 190,
-      min: 24.5,
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string
+        const lines = text.trim().split('\n')
+        const headers = lines[0].split(',')
+
+        const dataRows = lines.slice(1).map(line => line.split(','))
+        const numericColumnIndices = headers.map((_, i) =>
+          dataRows.every(row => !isNaN(Number(row[i])))
+        )
+
+        const numericColumns = headers.filter((_, i) => numericColumnIndices[i])
+        if (numericColumns.length === 0) {
+          setError("No numeric columns found in the dataset")
+          return
+        }
+
+        const numericData = dataRows.map(row => row.map(cell => Number(cell)))
+        setColumnNames(numericColumns)
+        setDataset(numericData)
+        setSelectedColumn(numericColumns[0])
+      } catch {
+        setError("Failed to parse CSV file. Please ensure it's properly formatted.")
+      }
+    }
+    reader.readAsText(file)
+  }, [setError])
+
+  const handleCalculate = async () => {
+    if (!selectedColumn || dataset.length === 0) {
+      setError("Please upload a dataset and select a column")
+      return
     }
 
-    setDatasetResult({
-      type: calculationType,
-      value: mockResults[calculationType as keyof typeof mockResults],
-      encrypted: true,
-      columns: Object.keys(datasetValues),
-    })
-  }
+    setProcessingDataset(true)
 
-  // Handle updating the dataset row
-  const handleUpdateDataset = () => {
-    setUpdatingDataset(true)
+    try {
+      const columnIndex = columnNames.indexOf(selectedColumn)
+      if (columnIndex === -1) {
+        throw new Error("Selected column not found in dataset")
+      }
 
-    // Simulate encrypting and sending the dataset
-    setTimeout(() => {
-      // Simulate successful update
-      toast({
-        title: "Dataset Updated",
-        description: "Your encrypted dataset row has been securely stored.",
+      // Get all values from the selected column
+      const columnValues = dataset.map(row => row[columnIndex])
+
+      // Encrypt all values
+      const encryptedValues = columnValues.map(value => encryptNumber(value))
+      if (encryptedValues.some(v => v === null)) {
+        throw new Error("Encryption failed for some values")
+      }
+
+      // Send to backend for calculation
+      const response = await fetch("http://localhost:18080/api/dataset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          encryptedValues,
+          calculationType,
+          publicKeyBase64: publicKey,
+          schemeType
+        }),
       })
-      setUpdatingDataset(false)
-    }, 1000)
+
+      if (!response.ok) {
+        throw new Error("Server error during dataset calculation")
+      }
+
+      const data = await response.json()
+
+      // Decrypt the result
+      const decryptedResult = decryptToNumber(data.encryptedResult)
+      if (decryptedResult === null) {
+        throw new Error("Decryption failed")
+      }
+
+      setDatasetResult({
+        type: calculationType,
+        value: decryptedResult,
+        column: selectedColumn
+      })
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Unknown error")
+    } finally {
+      setProcessingDataset(false)
+    }
   }
 
   return (
     <div className="grid md:grid-cols-2 gap-6">
-      <DatasetInputCard
-        datasetValues={datasetValues}
-        onInputChange={handleInputChange}
-        onUpdateDataset={handleUpdateDataset}
-        updating={updatingDataset}
-      />
-
-      <div className="space-y-6">
-        <DatasetAnalysisCard
-          calculationType={calculationType}
-          setCalculationType={setCalculationType}
-          onCalculate={handleDatasetCalculation}
-          loading={loading}
-        />
-
-        <DatasetResultCard result={datasetResult} />
-      </div>
-    </div>
-  )
-}
-
-interface DatasetInputCardProps {
-  datasetValues: Record<string, number>
-  onInputChange: (columnId: string, value: string) => void
-  onUpdateDataset: () => void
-  updating: boolean
-}
-
-function DatasetInputCard({ datasetValues, onInputChange, onUpdateDataset, updating }: DatasetInputCardProps) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Database className="w-5 h-5" />
-          Healthcare Dataset Row
-        </CardTitle>
-        <CardDescription>Enter values for a single row of healthcare data</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Column</TableHead>
-              <TableHead>Value</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {healthcareColumns.map((column) => (
-              <TableRow key={column.id}>
-                <TableCell className="font-medium">{column.name}</TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    value={datasetValues[column.id]}
-                    onChange={(e) => onInputChange(column.id, e.target.value)}
-                    step="0.1"
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-      <CardFooter className="flex flex-col space-y-4">
-        <Button onClick={onUpdateDataset} disabled={updating} className="w-full" variant="outline">
-          {updating ? (
-            "Encrypting and Updating..."
-          ) : (
-            <>
-              <Save className="w-4 h-4 mr-2" />
-              Update Dataset Row
-            </>
-          )}
-        </Button>
-        <p className="text-xs text-muted-foreground">This will encrypt your data and securely store it for analysis</p>
-      </CardFooter>
-    </Card>
-  )
-}
-
-interface DatasetAnalysisCardProps {
-  calculationType: string
-  setCalculationType: (type: string) => void
-  onCalculate: () => void
-  loading: boolean
-}
-
-function DatasetAnalysisCard({ calculationType, setCalculationType, onCalculate, loading }: DatasetAnalysisCardProps) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Analyze Dataset</CardTitle>
-        <CardDescription>Select a calculation type to perform on the encrypted dataset</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="calculation">Calculation Type</Label>
-          <Select value={calculationType} onValueChange={setCalculationType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select calculation" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="sum">Sum</SelectItem>
-              <SelectItem value="average">Average</SelectItem>
-              <SelectItem value="median">Median</SelectItem>
-              <SelectItem value="max">Maximum</SelectItem>
-              <SelectItem value="min">Minimum</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium">Available Homomorphic Operations</h3>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">Sum</Badge>
-            <Badge variant="outline">Average</Badge>
-            <Badge variant="outline">Median</Badge>
-            <Badge variant="outline">Min/Max</Badge>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="w-5 h-5" />
+            Dataset Analysis
+          </CardTitle>
+          <CardDescription>Upload a CSV file and perform calculations on encrypted data</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="file">Dataset (CSV)</Label>
+            <div className="flex items-center gap-2">
+              <input
+                type="file"
+                id="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                onClick={() => document.getElementById('file')?.click()}
+                className="w-full"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Choose CSV File
+              </Button>
+            </div>
+            {dataset.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Loaded {dataset.length} rows with {columnNames.length} columns
+              </p>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            These operations can be performed while data remains encrypted
-          </p>
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button onClick={onCalculate} disabled={loading} className="w-full">
-          {loading ? "Processing..." : "Process Encrypted Dataset"}
-        </Button>
-      </CardFooter>
-    </Card>
+
+          {dataset.length > 0 && (
+            <div className="flex flex-row gap-4 mt-8">
+              <div className="space-y-2 w-full">
+                <Label htmlFor="column">Select Column</Label>
+                <Select value={selectedColumn} onValueChange={setSelectedColumn}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select column" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {columnNames.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 w-full">
+                <Label htmlFor="calculation">Calculation Type</Label>
+                <Select value={calculationType} onValueChange={setCalculationType}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select calculation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sum">Sum</SelectItem>
+                    <SelectItem value="average">Average</SelectItem>
+                    <SelectItem value="min">Minimum</SelectItem>
+                    <SelectItem value="max">Maximum</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex flex-row gap-4">
+          <div className="flex">
+            <Label htmlFor="scheme" className="sr-only">Encryption Scheme</Label>
+            <Select value={schemeType} onValueChange={(value: 'bfv' | 'ckks') => setSchemeType(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select scheme" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bfv">BFV</SelectItem>
+                <SelectItem value="ckks">CKKS</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            onClick={handleCalculate}
+            disabled={loading || !publicKey || !selectedColumn || dataset.length === 0 || processingDataset}
+            className="flex-1"
+          >
+            {processingDataset ? (
+              "Processing..."
+            ) : (
+              <>
+                <Calculator className="w-4 h-4 mr-2" />
+                Calculate
+              </>
+            )}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      <DatasetResultCard result={datasetResult} />
+    </div>
   )
 }

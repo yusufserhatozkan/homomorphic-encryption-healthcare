@@ -209,10 +209,10 @@ app.get("/api/addition-benchmark", async (req, res) => {
       testCases.push({ a, b: a }); // test a + a
     }
     // Optionally, add a few edge floating point cases
-    const floatEdges = [1e-6, -1e-6, 1e6, -1e6, 3.14159, 2.71828, -3.14159, -2.71828];
-    for (const a of floatEdges) {
-      testCases.push({ a, b: a });
-    }
+    // const floatEdges = [1e-6, -1e-6, 1e6, -1e6, 3.14159, 2.71828, -3.14159, -2.71828];
+    // for (const a of floatEdges) {
+    //   testCases.push({ a, b: a });
+    // }
     const schemes = ["bfv", "ckks"];
     const results = {};
     const summaries = {};

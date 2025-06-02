@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,28 +46,50 @@ export default function BenchmarkVisualizationPage() {
         </CardHeader>
         <CardContent>
           <div className="mb-8">
-            <h3 className="font-semibold mb-2">Error vs Value (BFV vs CKKS)</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
+            <h3 className="font-semibold mb-2">BFV: Error vs Value</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={bfv.map((item: any) => ({ a: item.a, error: item.error }))}>
                 <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="error_bfv" name="BFV Error" stroke="#8884d8" dot={false} />
-                <Line type="monotone" dataKey="error_ckks" name="CKKS Error" stroke="#82ca9d" dot={false} />
+                <Line type="monotone" dataKey="error" name="BFV Error" stroke="#8884d8" dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mb-8">
+            <h3 className="font-semibold mb-2">CKKS: Error vs Value</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={ckks.map((item: any) => ({ a: item.a, error: item.error }))}>
+                <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="error" name="CKKS Error" stroke="#82ca9d" dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mb-8">
+            <h3 className="font-semibold mb-2">BFV: Total Time vs Value</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={bfv.map((item: any) => ({ a: item.a, time: item.totalMs }))}>
+                <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="time" name="BFV Time (ms)" stroke="#8884d8" dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div>
-            <h3 className="font-semibold mb-2">Total Time vs Value (BFV vs CKKS)</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
+            <h3 className="font-semibold mb-2">CKKS: Total Time vs Value</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={ckks.map((item: any) => ({ a: item.a, time: item.totalMs }))}>
                 <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="time_bfv" name="BFV Time (ms)" stroke="#8884d8" dot={false} />
-                <Line type="monotone" dataKey="time_ckks" name="CKKS Time (ms)" stroke="#82ca9d" dot={false} />
+                <Line type="monotone" dataKey="time" name="CKKS Time (ms)" stroke="#82ca9d" dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

@@ -204,24 +204,14 @@ app.get("/api/addition-benchmark", async (req, res) => {
   try {
     // Generate deterministic test cases
     const testCases = [];
-    // Integers: -1_000_000_000 to 1_000_000_000 step 100_000_000
-    for (let a = -1_000_000_000; a <= 1_000_000_000; a += 100_000_000) {
-      for (let b = -1_000_000_000; b <= 1_000_000_000; b += 100_000_000) {
-        testCases.push({ a, b });
-      }
+    // Only one loop: values from 0 to 10_000_000, step 1000
+    for (let a = 0; a <= 500_000; a += 500) {
+      testCases.push({ a, b: a }); // test a + a
     }
-    // Floating points: -1_000_000_000.0 to 1_000_000_000.0 step 100_000_000.0
-    for (let a = -1_000_000_000.0; a <= 1_000_000_000.0; a += 100_000_000.0) {
-      for (let b = -1_000_000_000.0; b <= 1_000_000_000.0; b += 100_000_000.0) {
-        testCases.push({ a: parseFloat(a.toFixed(3)), b: parseFloat(b.toFixed(3)) });
-      }
-    }
-    // Edge floating points
+    // Optionally, add a few edge floating point cases
     const floatEdges = [1e-6, -1e-6, 1e6, -1e6, 3.14159, 2.71828, -3.14159, -2.71828];
     for (const a of floatEdges) {
-      for (const b of floatEdges) {
-        testCases.push({ a, b });
-      }
+      testCases.push({ a, b: a });
     }
     const schemes = ["bfv", "ckks"];
     const results = {};

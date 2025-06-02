@@ -11,6 +11,20 @@
     #include <sys/resource.h>
 #endif
 
+int encryption_count = 0; // Track how many encryptions we've done in this session
+
+void print_session_start() {
+    std::cout << "###########################\n";
+}
+
+void print_session_end() {
+    std::cout << "###########################\n";
+}
+
+void print_op_separator() {
+    std::cout << "---------------------------\n";
+}
+
 int main() {
     HomomorphicEncryption he_bfv(false, true);   // BFV with key generation
     HomomorphicEncryption he_ckks(true, true);   // CKKS with key generation
@@ -19,7 +33,6 @@ int main() {
     crow::App<CORSMiddleware> app;
     app.loglevel(crow::LogLevel::Warning);
 
-    // Encryption endpoint
     CROW_ROUTE(app, "/encrypt")
     .methods("POST"_method)
     ([&](const crow::request& req) {
@@ -36,6 +49,10 @@ int main() {
             double value = json_data["value"].d();
             std::string ciphertext;
 
+            if (encryption_count % 2 == 0) {
+                print_session_start();  // Start of session every 2 encryptions
+            }
+
             auto start = std::chrono::high_resolution_clock::now();
 
             if (scheme == "bfv") {
@@ -49,8 +66,8 @@ int main() {
             auto end = std::chrono::high_resolution_clock::now();
             auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             std::cout << "Encryption was done in " << duration_us << " microseconds\n";
+            std::cout << "Throughput: " << (1000000.0 / duration_us) << " operations per second\n";
 
-            // RAM usage
 #if defined(_WIN32)
             PROCESS_MEMORY_COUNTERS memInfo;
             GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
@@ -61,6 +78,9 @@ int main() {
             std::cout << "RAM usage: " << usage.ru_maxrss << " KB\n";
 #endif
 
+            print_op_separator(); // Separator after encryption
+            encryption_count++;
+
             response["ciphertext"] = ciphertext;
             return crow::response(200, response);
         } catch (const std::exception& e) {
@@ -69,7 +89,6 @@ int main() {
         }
     });
 
-    // Decryption endpoint
     CROW_ROUTE(app, "/decrypt")
     .methods("POST"_method)
     ([&](const crow::request& req) {
@@ -99,8 +118,8 @@ int main() {
             auto end = std::chrono::high_resolution_clock::now();
             auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             std::cout << "Decryption was done in " << duration_us << " microseconds\n";
+            std::cout << "Throughput: " << (1000000.0 / duration_us) << " operations per second\n";
 
-            // RAM usage
 #if defined(_WIN32)
             PROCESS_MEMORY_COUNTERS memInfo;
             GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
@@ -110,6 +129,9 @@ int main() {
             getrusage(RUSAGE_SELF, &usage);
             std::cout << "RAM usage: " << usage.ru_maxrss << " KB\n";
 #endif
+
+            print_op_separator(); // Separator after decryption
+            print_session_end();  // End of session after 2 encryptions + 1 decryption
 
             response["value"] = value;
             return crow::response(200, response);
@@ -140,7 +162,6 @@ int main() {
         }
     });
 
-    // Handle OPTIONS for root route
     CROW_ROUTE(app, "/")
     .methods("OPTIONS"_method)
     ([](const crow::request& req, crow::response& res) {
@@ -149,5 +170,7 @@ int main() {
     });
 
     std::cout << "Starting mini-backend on port 18081...\n";
+    std::cout << "###########################\n"; // Only once at backend start
+
     app.port(18081).multithreaded().run();
 }

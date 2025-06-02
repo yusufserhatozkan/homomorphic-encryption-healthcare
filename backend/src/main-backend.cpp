@@ -10,6 +10,14 @@
     #include <sys/resource.h>
 #endif
 
+void print_session_start() {
+    std::cout << "---------------------------\n";
+}
+
+void print_session_end() {
+    std::cout << "---------------------------\n";
+}
+
 int main() {
     // Initialize HE without key generation
     HomomorphicEncryption he_bfv(false, false);  // BFV without key generation
@@ -41,6 +49,8 @@ int main() {
 
             std::string encrypted_result;
 
+            print_session_start();  // Start of a session
+
             auto start = std::chrono::high_resolution_clock::now();
 
             // Perform homomorphic addition
@@ -55,8 +65,8 @@ int main() {
             auto end = std::chrono::high_resolution_clock::now();
             auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             std::cout << "Homomorphic addition was done in " << duration_us << " microseconds\n";
+            std::cout << "Throughput: " << (1000000.0 / duration_us) << " operations per second\n";
 
-            // RAM usage (platform-specific)
 #if defined(_WIN32)
             PROCESS_MEMORY_COUNTERS memInfo;
             GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
@@ -66,6 +76,8 @@ int main() {
             getrusage(RUSAGE_SELF, &usage);
             std::cout << "RAM usage: " << usage.ru_maxrss << " KB\n";
 #endif
+
+            print_session_end();  // End of a session
 
             response["ciphertext"] = encrypted_result;
             return crow::response(200, response);
@@ -94,5 +106,6 @@ int main() {
     });
 
     std::cout << "Starting main backend on port 18080...\n";
+    std::cout << "###########################\n"; // One-time line at startup
     app.port(18080).multithreaded().run();
 }

@@ -110,6 +110,14 @@ void HomomorphicEncryption::generate_keys() {
 
     std::cout << "Key generation time: " << duration << " microseconds" << std::endl;
     std::cout << "Poly modulus degree: " << parms.poly_modulus_degree() << std::endl;
+
+    // ✅ Added: Print modulus coefficients
+    std::cout << "Modulus Coefficients: [ ";
+    for (const auto& mod : parms.coeff_modulus()) {
+        std::cout << mod.value() << " ";
+    }
+    std::cout << "]" << std::endl;
+
     std::cout << "Key size: " << pubkey_size_bytes << " bytes" << std::endl;
 }
 

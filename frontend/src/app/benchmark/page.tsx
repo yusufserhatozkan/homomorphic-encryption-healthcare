@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { BarChart, LineChart } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import PerformanceMetricsDisplay from "@/lib/performance-metrics-display"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts"
 
 interface BenchmarkData {
@@ -61,7 +61,7 @@ export default function BenchmarkPage() {
 
             <TabsTrigger value="visualization" className="flex items-center gap-2">
               <LineChart className="w-4 h-4" />
-              Visualization
+              Value Size
             </TabsTrigger>
           </TabsList>
 
@@ -77,61 +77,87 @@ export default function BenchmarkPage() {
             ) : !data?.results ? (
               <div className="p-8 text-center">No data available.</div>
             ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Homomorphic Addition Benchmark Visualization</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-8">
-                    <h3 className="font-semibold mb-2">BFV: Error vs Value</h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <RechartsLineChart data={data.results.bfv?.map((item) => ({ a: item.a, error: item.error }))}>
-                        <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="error" name="BFV Error" stroke="#8884d8" dot={false} />
-                      </RechartsLineChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="mb-8">
-                    <h3 className="font-semibold mb-2">CKKS: Error vs Value</h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <RechartsLineChart data={data.results.ckks?.map((item) => ({ a: item.a, error: item.error }))}>
-                        <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="error" name="CKKS Error" stroke="#82ca9d" dot={false} />
-                      </RechartsLineChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="mb-8">
-                    <h3 className="font-semibold mb-2">BFV: Total Time vs Value</h3>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <RechartsLineChart data={data.results.bfv?.map((item) => ({ a: item.a, time: item.totalMs }))}>
-                        <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="time" name="BFV Time (ms)" stroke="#8884d8" dot={false} />
-                      </RechartsLineChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2">CKKS: Total Time vs Value</h3>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <RechartsLineChart data={data.results.ckks?.map((item) => ({ a: item.a, time: item.totalMs }))}>
-                        <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="time" name="CKKS Time (ms)" stroke="#82ca9d" dot={false} />
-                      </RechartsLineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>BFV Error Analysis</CardTitle>
+                    <CardDescription>Error rate vs input value size for BFV scheme</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsLineChart data={data.results.bfv?.map((item) => ({ a: item.a, error: item.error }))}>
+                          <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Line type="monotone" dataKey="error" name="BFV Error" stroke="#8884d8" dot={false} />
+                        </RechartsLineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>CKKS Error Analysis</CardTitle>
+                    <CardDescription>Error rate vs input value size for CKKS scheme</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsLineChart data={data.results.ckks?.map((item) => ({ a: item.a, error: item.error }))}>
+                          <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Line type="monotone" dataKey="error" name="CKKS Error" stroke="#82ca9d" dot={false} />
+                        </RechartsLineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>BFV Performance</CardTitle>
+                    <CardDescription>Computation time vs input value size for BFV scheme</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsLineChart data={data.results.bfv?.map((item) => ({ a: item.a, time: item.totalMs }))}>
+                          <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Line type="monotone" dataKey="time" name="BFV Time (ms)" stroke="#8884d8" dot={false} />
+                        </RechartsLineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>CKKS Performance</CardTitle>
+                    <CardDescription>Computation time vs input value size for CKKS scheme</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsLineChart data={data.results.ckks?.map((item) => ({ a: item.a, time: item.totalMs }))}>
+                          <XAxis dataKey="a" tickFormatter={(v) => v.toLocaleString()} />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Line type="monotone" dataKey="time" name="CKKS Time (ms)" stroke="#82ca9d" dot={false} />
+                        </RechartsLineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </TabsContent>
         </Tabs>

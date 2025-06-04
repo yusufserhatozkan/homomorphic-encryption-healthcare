@@ -17,7 +17,7 @@ export function Navbar() {
           </Link>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">Homomorphic Encryption - Group 8</span>
+          <span className="text-sm text-muted-foreground">Homomorphic Encryption - IoT Group 8</span>
           <ThemeToggle />
         </div>
       </nav>

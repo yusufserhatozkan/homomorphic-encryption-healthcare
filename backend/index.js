@@ -51,6 +51,11 @@ app.post("/api/add", (req, res) => {
 
   try {
     const { cipher1Base64, cipher2Base64, publicKeyBase64, schemeType } = req.body;
+    const timings = {
+      serverReceive: Date.now() - start,
+      serverProcessing: 0,
+      serverResponse: 0
+    };
 
     if (!schemeType || (schemeType !== 'bfv' && schemeType !== 'ckks')) {
       throw new Error(`Invalid scheme type: ${schemeType}`);
@@ -84,13 +89,21 @@ app.post("/api/add", (req, res) => {
     log("Add", `Ciphertexts loaded successfully for ${schemeType} scheme`);
 
     const result = seal.CipherText();
+    const computeStart = Date.now();
     evaluator.add(cipher1, cipher2, result);
+    timings.serverProcessing = Date.now() - computeStart;
     log("Add", "Homomorphic addition performed");
 
-    const duration = Date.now() - start;
-    log("Add", `Homomorphic addition completed in ${duration}ms`);
-
-    res.json({ encryptedResult: result.save() });
+    const responseStart = Date.now();
+    const response = { 
+      encryptedResult: result.save(),
+      timings: {
+        ...timings,
+        serverResponse: Date.now() - responseStart,
+        totalServerTime: Date.now() - start
+      }
+    };
+    res.json(response);
   } catch (err) {
     log("Error", `Homomorphic addition failed: ${err.message}`);
     res.status(500).json({ error: err.message || "Homomorphic addition failed" });

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calculator, Unlock, ArrowRight } from "lucide-react"
+import { Calculator, Unlock } from "lucide-react"
 import { useSeal } from "@/lib/homomorphic-service"
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -88,25 +88,27 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
           <CardDescription>Enter two numbers to add them securely while they remain encrypted</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="numberA">First Number</Label>
-            <Input
-              id="numberA"
-              type="number"
-              value={numberA}
-              onChange={(e) => setNumberA(e.target.value)}
-              placeholder="Enter first number"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="numberB">Second Number</Label>
-            <Input
-              id="numberB"
-              type="number"
-              value={numberB}
-              onChange={(e) => setNumberB(e.target.value)}
-              placeholder="Enter second number"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="numberA">First Number</Label>
+              <Input
+                id="numberA"
+                type="number"
+                value={numberA}
+                onChange={(e) => setNumberA(e.target.value)}
+                placeholder="Enter first number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="numberB">Second Number</Label>
+              <Input
+                id="numberB"
+                type="number"
+                value={numberB}
+                onChange={(e) => setNumberB(e.target.value)}
+                placeholder="Enter second number"
+              />
+            </div>
           </div>
         </CardContent>
         <CardFooter className="flex flex-row gap-4">
@@ -140,7 +142,7 @@ function ResultCard({ result }: { result: number | null }) {
         <CardTitle>Results</CardTitle>
         <CardDescription>The decrypted result of the homomorphic operation</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="flex items-center gap-2">
@@ -155,27 +157,6 @@ function ResultCard({ result }: { result: number | null }) {
           <p className="text-xs text-muted-foreground">
             The result is decrypted on the client side after server-side homomorphic computation
           </p>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <ArrowRight className="w-4 h-4" />
-            <span className="text-sm font-medium">Process Flow</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="p-2 border rounded-md">
-              <div className="font-medium mb-1">Encrypt</div>
-              <div className="text-muted-foreground">Client-side</div>
-            </div>
-            <div className="p-2 border rounded-md">
-              <div className="font-medium mb-1">Compute</div>
-              <div className="text-muted-foreground">Server-side</div>
-            </div>
-            <div className="p-2 border rounded-md">
-              <div className="font-medium mb-1">Decrypt</div>
-              <div className="text-muted-foreground">Client-side</div>
-            </div>
-          </div>
         </div>
       </CardContent>
     </Card>

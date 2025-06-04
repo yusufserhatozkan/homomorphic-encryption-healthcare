@@ -1,17 +1,25 @@
-import Link from "next/link";
-import { ThemeToggle } from "./theme-toggle";
+"use client"
+
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { ThemeToggle } from "./theme-toggle"
 
 export function Navbar() {
+  const pathname = usePathname()
+
   return (
     <header className="w-full border-b bg-card">
       <nav className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="font-semibold hover:underline">
+          <Link
+            href="/"
+            className={`font-semibold ${pathname === "/" ? "underline" : "hover:underline"}`}
+          >
             Operations
           </Link>
           <Link
             href="/benchmark"
-            className="font-semibold hover:underline"
+            className={`font-semibold ${pathname === "/benchmark" ? "underline" : "hover:underline"}`}
           >
             Benchmark
           </Link>

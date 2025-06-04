@@ -10,7 +10,7 @@ interface AboutSectionProps {
 
 export default function AboutSection({ activeTab }: AboutSectionProps) {
   return (
-    <Card className="my-4">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Info className="w-5 h-5" />

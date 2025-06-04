@@ -24,20 +24,20 @@ export default function DatasetResultCard({ result }: DatasetResultCardProps) {
       </CardHeader>
       <CardContent>
         {result ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2">
-                <Unlock className="w-4 h-4" />
-                {result.type.charAt(0).toUpperCase() + result.type.slice(1)} Result
-              </Label>
-              <Badge variant="outline">Plain Text Result</Badge>
-            </div>
-            <div className="p-4 bg-muted rounded-md font-mono text-lg flex items-center justify-center h-16">
-              {result.value}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              The result is decrypted on the client side after server-side homomorphic computation
-            </p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <Unlock className="w-4 h-4" />
+                  {result.type.charAt(0).toUpperCase() + result.type.slice(1)} Result
+                </Label>
+                <Badge variant="outline">Plain Text Result</Badge>
+              </div>
+              <div className="p-4 bg-muted rounded-md font-mono text-lg flex items-center justify-center h-16">
+                {result.value}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                The result is decrypted on the client side after server-side homomorphic computation
+              </p>
             <div className="pt-2">
               <Badge variant="secondary">{result.column}</Badge>
             </div>

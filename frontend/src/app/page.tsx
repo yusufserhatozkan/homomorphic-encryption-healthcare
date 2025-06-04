@@ -23,7 +23,7 @@ export default function Home() {
           </p>
         </div>
 
-        <Tabs defaultValue="addition" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs defaultValue="addition" value={activeTab} onValueChange={setActiveTab} className="w-full gap-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="addition" className="flex items-center gap-2">
               <Calculator className="w-4 h-4" />

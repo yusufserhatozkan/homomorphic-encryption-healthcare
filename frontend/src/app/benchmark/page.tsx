@@ -43,7 +43,7 @@ export default function BenchmarkPage() {
   }, [])
 
   return (
-    <main className="min-h-screen mt-20 p-6 bg-background">
+    <main className="flex-1 mt-10 p-6 bg-background">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold tracking-tight">Benchmark Analysis</h1>

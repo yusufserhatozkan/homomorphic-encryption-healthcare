@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { BarChart, Clock, Activity, Database } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -9,7 +7,9 @@ import { useSeal } from "@/lib/homomorphic-service"
 import performanceMetrics from "@/lib/performance-metrics"
 import { Button } from "@/components/ui/button"
 
-export default function PerformanceMetricsDisplay() {
+export function PerformanceMetrics({ setError }: {
+    setError: (error: string | null) => void
+}) {
     const [activeTab, setActiveTab] = useState("summary")
     const [metrics, setMetrics] = useState<any>(null)
     const [refreshKey, setRefreshKey] = useState(0)
@@ -151,9 +151,9 @@ export default function PerformanceMetricsDisplay() {
                                                 <TableCell>{op.operationType}</TableCell>
                                                 <TableCell>{op.duration?.toFixed(2) || 'N/A'}</TableCell>
                                                 <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${op.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {op.success ? 'Success' : 'Failed'}
-                          </span>
+                                                    <span className={`px-2 py-1 rounded-full text-xs ${op.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                        {op.success ? 'Success' : 'Failed'}
+                                                    </span>
                                                 </TableCell>
                                             </TableRow>
                                         ))}

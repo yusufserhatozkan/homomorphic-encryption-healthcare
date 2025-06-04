@@ -18,10 +18,11 @@ interface BenchmarkData {
   }
 }
 
-export function ValueSize() {
+export function ValueSize({ setError }: {
+  setError: (error: string | null) => void
+}) {
   const [data, setData] = useState<BenchmarkData | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const handleFetch = () => {
     setLoading(true)
@@ -40,15 +41,6 @@ export function ValueSize() {
 
   if (loading) {
     return <div className="p-8 text-center">Loading...</div>
-  }
-
-  if (error) {
-    return (
-      <div className="p-8 text-center">
-        <div className="text-red-500 mb-4">{error}</div>
-        <Button onClick={handleFetch}>Retry Fetch</Button>
-      </div>
-    )
   }
 
   if (!data?.results) {

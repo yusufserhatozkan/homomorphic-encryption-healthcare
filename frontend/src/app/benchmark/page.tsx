@@ -3,10 +3,12 @@
 import { useState } from "react"
 import { BarChart, LineChart } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import PerformanceMetricsDisplay from "@/lib/performance-metrics-display"
 import { ValueSize } from "@/components/value-size"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { PerformanceMetrics } from "@/components/performance-metrics-display"
 
 export default function BenchmarkPage() {
+  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("metrics")
 
   return (
@@ -33,13 +35,19 @@ export default function BenchmarkPage() {
           </TabsList>
 
           <TabsContent value="metrics">
-            <PerformanceMetricsDisplay />
+            <PerformanceMetrics setError={setError} />
           </TabsContent>
 
           <TabsContent value="visualization">
-            <ValueSize />
+            <ValueSize setError={setError} />
           </TabsContent>
         </Tabs>
+        {error && (
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
       </div>
     </main>
   )

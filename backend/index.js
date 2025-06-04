@@ -226,6 +226,7 @@ app.get("/api/addition-benchmark", async (req, res) => {
       const publicKey = keyGenerator.createPublicKey();
       const encryptor = seal.Encryptor(context, publicKey);
       const decryptor = seal.Decryptor(context, secretKey);
+      const dataPath = "./healtchcare_data.csv"; // Path to healthcare data file
       const encode = (num) => {
         let plaintext;
         if (schemeType === "bfv") {

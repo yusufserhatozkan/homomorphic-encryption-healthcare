@@ -13,7 +13,7 @@ export function Navbar() {
             Operations
           </Link>
           <Link
-            href="/benchmark-visualization"
+            href="/benchmark"
             className="font-semibold hover:underline"
           >
             Benchmark

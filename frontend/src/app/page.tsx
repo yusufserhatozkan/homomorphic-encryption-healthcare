@@ -1,14 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { Calculator, Database, BarChart } from 'lucide-react'
+import { Calculator, Database } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 import SimpleAddition from "@/components/simple-addition"
 import DatasetAnalysis from "@/components/dataset-analysis"
 import AboutSection from "@/components/about-section"
-import PerformanceMetricsDisplay from "@/lib/performance-metrics-display";
 
 export default function Home() {
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +24,7 @@ export default function Home() {
         </div>
 
         <Tabs defaultValue="addition" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="addition" className="flex items-center gap-2">
               <Calculator className="w-4 h-4" />
               Simple Addition
@@ -34,11 +33,6 @@ export default function Home() {
             <TabsTrigger value="dataset" className="flex items-center gap-2">
               <Database className="w-4 h-4" />
               Dataset Analysis
-            </TabsTrigger>
-
-            <TabsTrigger value="metrics" className="flex items-center gap-2">
-              <BarChart className="w-4 h-4" />
-              Performance Metrics
             </TabsTrigger>
           </TabsList>
 
@@ -50,10 +44,6 @@ export default function Home() {
 
           <TabsContent value="dataset">
             <DatasetAnalysis setError={setError} />
-          </TabsContent>
-
-          <TabsContent value="metrics">
-            <PerformanceMetricsDisplay />
           </TabsContent>
         </Tabs>
 

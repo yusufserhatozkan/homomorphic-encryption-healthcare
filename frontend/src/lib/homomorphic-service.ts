@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import performanceMetrics from "@/lib/performance-metrics";
 
-const API_BASE_URL = "http://localhost:18080/api/add";
+const API_BASE_URL = "http://localhost:18080/api/demo/add";
 
 export const useSeal = () => {
   const [seal, setSeal] = useState<any>(null);

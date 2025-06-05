@@ -123,7 +123,7 @@ export default function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
     setLoadingResult(true)
     setErrorResult(null)
     try {
-      const response = await fetch(`${API_BASE_URL}/dataset-analysis`, {
+      const response = await fetch(`${API_BASE_URL}/demo/dataset`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -15,7 +15,7 @@ export function Navbar() {
             href="/"
             className={`font-semibold ${pathname === "/" ? "underline" : "hover:underline"}`}
           >
-            Operations
+            Demo
           </Link>
           <Link
             href="/benchmark"

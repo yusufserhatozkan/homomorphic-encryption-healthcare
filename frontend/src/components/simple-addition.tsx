@@ -61,7 +61,7 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
 
       // Send encrypted numbers and public key to server for homomorphic addition
       const requestStart = performance.now()
-      const res = await fetch(`${API_BASE_URL}/addition`, {
+      const res = await fetch(`${API_BASE_URL}/demo/addition`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

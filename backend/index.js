@@ -25,7 +25,9 @@ let bfvEvaluator, ckksEvaluator;
     const bfvSchemeType = seal.SchemeType.bfv;
     const bfvParms = seal.EncryptionParameters(bfvSchemeType);
     bfvParms.setPolyModulusDegree(4096);
-    bfvParms.setCoeffModulus(seal.CoeffModulus.Create(4096, Int32Array.from([36, 36, 37])));
+    bfvParms.setCoeffModulus(
+      seal.CoeffModulus.Create(4096, Int32Array.from([36, 36, 37])),
+    );
     bfvParms.setPlainModulus(seal.PlainModulus.Batching(4096, 20));
     bfvContext = seal.Context(bfvParms, true, seal.SecurityLevel.tc128);
     bfvEvaluator = seal.Evaluator(bfvContext);
@@ -34,7 +36,9 @@ let bfvEvaluator, ckksEvaluator;
     const ckksSchemeType = seal.SchemeType.ckks;
     const ckksParms = seal.EncryptionParameters(ckksSchemeType);
     ckksParms.setPolyModulusDegree(4096);
-    ckksParms.setCoeffModulus(seal.CoeffModulus.Create(4096, Int32Array.from([36, 36, 37])));
+    ckksParms.setCoeffModulus(
+      seal.CoeffModulus.Create(4096, Int32Array.from([36, 36, 37])),
+    );
     ckksContext = seal.Context(ckksParms, true, seal.SecurityLevel.tc128);
     ckksEvaluator = seal.Evaluator(ckksContext);
 
@@ -45,28 +49,31 @@ let bfvEvaluator, ckksEvaluator;
   }
 })();
 
-app.post("/api/add", (req, res) => {
+app.post("/api/demo/addition", (req, res) => {
   const start = Date.now();
   log("Add", "Received encrypted addition request");
 
   try {
-    const { cipher1Base64, cipher2Base64, publicKeyBase64, schemeType } = req.body;
+    const { cipher1Base64, cipher2Base64, publicKeyBase64, schemeType } =
+      req.body;
     const timings = {
       serverReceive: Date.now() - start,
       serverProcessing: 0,
-      serverResponse: 0
+      serverResponse: 0,
     };
 
-    if (!schemeType || (schemeType !== 'bfv' && schemeType !== 'ckks')) {
+    if (!schemeType || (schemeType !== "bfv" && schemeType !== "ckks")) {
       throw new Error(`Invalid scheme type: ${schemeType}`);
     }
 
     // Select context and evaluator based on scheme
-    const context = schemeType === 'bfv' ? bfvContext : ckksContext;
-    const evaluator = schemeType === 'bfv' ? bfvEvaluator : ckksEvaluator;
+    const context = schemeType === "bfv" ? bfvContext : ckksContext;
+    const evaluator = schemeType === "bfv" ? bfvEvaluator : ckksEvaluator;
 
     if (!context || !evaluator) {
-      throw new Error(`Context or evaluator not initialized for scheme: ${schemeType}`);
+      throw new Error(
+        `Context or evaluator not initialized for scheme: ${schemeType}`,
+      );
     }
 
     // Load the client's public key
@@ -95,38 +102,43 @@ app.post("/api/add", (req, res) => {
     log("Add", "Homomorphic addition performed");
 
     const responseStart = Date.now();
-    const response = { 
+    const response = {
       encryptedResult: result.save(),
       timings: {
         ...timings,
         serverResponse: Date.now() - responseStart,
-        totalServerTime: Date.now() - start
-      }
+        totalServerTime: Date.now() - start,
+      },
     };
     res.json(response);
   } catch (err) {
     log("Error", `Homomorphic addition failed: ${err.message}`);
-    res.status(500).json({ error: err.message || "Homomorphic addition failed" });
+    res
+      .status(500)
+      .json({ error: err.message || "Homomorphic addition failed" });
   }
 });
 
-app.post("/api/dataset", (req, res) => {
+app.post("/api/demo/dataset", (req, res) => {
   const start = Date.now();
   log("Dataset", "Received dataset calculation request");
 
   try {
-    const { encryptedValues, calculationType, publicKeyBase64, schemeType } = req.body;
+    const { encryptedValues, calculationType, publicKeyBase64, schemeType } =
+      req.body;
 
-    if (!schemeType || (schemeType !== 'bfv' && schemeType !== 'ckks')) {
+    if (!schemeType || (schemeType !== "bfv" && schemeType !== "ckks")) {
       throw new Error(`Invalid scheme type: ${schemeType}`);
     }
 
     // Select context and evaluator based on scheme
-    const context = schemeType === 'bfv' ? bfvContext : ckksContext;
-    const evaluator = schemeType === 'bfv' ? bfvEvaluator : ckksEvaluator;
+    const context = schemeType === "bfv" ? bfvContext : ckksContext;
+    const evaluator = schemeType === "bfv" ? bfvEvaluator : ckksEvaluator;
 
     if (!context || !evaluator) {
-      throw new Error(`Context or evaluator not initialized for scheme: ${schemeType}`);
+      throw new Error(
+        `Context or evaluator not initialized for scheme: ${schemeType}`,
+      );
     }
 
     // Load the client's public key
@@ -137,18 +149,21 @@ app.post("/api/dataset", (req, res) => {
     const encryptor = seal.Encryptor(context, publicKey);
 
     // Load all ciphertexts
-    const ciphertexts = encryptedValues.map(base64 => {
+    const ciphertexts = encryptedValues.map((base64) => {
       const cipher = seal.CipherText();
       cipher.load(context, base64);
       return cipher;
     });
 
-    log("Dataset", `Loaded ${ciphertexts.length} ciphertexts for ${schemeType} scheme`);
+    log(
+      "Dataset",
+      `Loaded ${ciphertexts.length} ciphertexts for ${schemeType} scheme`,
+    );
 
     // Perform the calculation based on type
     let result;
     switch (calculationType) {
-      case 'sum':
+      case "sum":
         result = ciphertexts.reduce((acc, cipher) => {
           const temp = seal.CipherText();
           evaluator.add(acc, cipher, temp);
@@ -156,7 +171,7 @@ app.post("/api/dataset", (req, res) => {
         });
         break;
 
-      case 'average':
+      case "average":
         // First sum all values
         const sum = ciphertexts.reduce((acc, cipher) => {
           const temp = seal.CipherText();
@@ -166,7 +181,7 @@ app.post("/api/dataset", (req, res) => {
         // Then divide by count (using plaintext division)
         const count = ciphertexts.length;
         const plainCount = seal.PlainText();
-        if (schemeType === 'bfv') {
+        if (schemeType === "bfv") {
           const encoder = seal.BatchEncoder(context);
           const vector = new Int32Array(encoder.slotCount).fill(0);
           vector[0] = count;
@@ -181,7 +196,7 @@ app.post("/api/dataset", (req, res) => {
         evaluator.dividePlain(sum, plainCount, result);
         break;
 
-      case 'min':
+      case "min":
         result = ciphertexts.reduce((acc, cipher) => {
           const temp = seal.CipherText();
           evaluator.min(acc, cipher, temp);
@@ -189,7 +204,7 @@ app.post("/api/dataset", (req, res) => {
         });
         break;
 
-      case 'max':
+      case "max":
         result = ciphertexts.reduce((acc, cipher) => {
           const temp = seal.CipherText();
           evaluator.max(acc, cipher, temp);
@@ -207,12 +222,14 @@ app.post("/api/dataset", (req, res) => {
     res.json({ encryptedResult: result.save() });
   } catch (err) {
     log("Error", `Dataset calculation failed: ${err.message}`);
-    res.status(500).json({ error: err.message || "Dataset calculation failed" });
+    res
+      .status(500)
+      .json({ error: err.message || "Dataset calculation failed" });
   }
 });
 
 // Endpoint for backend-side homomorphic addition benchmark
-app.get("/api/addition-benchmark", async (req, res) => {
+app.get("/api/benchmark/value-size", async (req, res) => {
   log("Benchmark", "Starting backend addition benchmark for BFV and CKKS");
   try {
     // Get parameters from query string with defaults
@@ -233,7 +250,10 @@ app.get("/api/addition-benchmark", async (req, res) => {
     for (const schemeType of schemes) {
       const context = schemeType === "bfv" ? bfvContext : ckksContext;
       const evaluator = schemeType === "bfv" ? bfvEvaluator : ckksEvaluator;
-      const sealEncoder = schemeType === "bfv" ? seal.BatchEncoder(context) : seal.CKKSEncoder(context);
+      const sealEncoder =
+        schemeType === "bfv"
+          ? seal.BatchEncoder(context)
+          : seal.CKKSEncoder(context);
       const keyGenerator = seal.KeyGenerator(context);
       const secretKey = keyGenerator.secretKey();
       const publicKey = keyGenerator.createPublicKey();
@@ -288,7 +308,10 @@ app.get("/api/addition-benchmark", async (req, res) => {
         // Decode
         const result = decode(plainResult);
         const expected = a + b;
-        const accurate = schemeType === "ckks" ? Math.abs(result - expected) < 0.001 : result === Math.round(expected);
+        const accurate =
+          schemeType === "ckks"
+            ? Math.abs(result - expected) < 0.001
+            : result === Math.round(expected);
         if (accurate) accurateCount++;
         const error = Math.abs(result - expected);
         totalError += error;
@@ -297,13 +320,16 @@ app.get("/api/addition-benchmark", async (req, res) => {
         totalDecryption += t4 - t3;
         totalTotal += t4 - t0;
         caseResults.push({
-          a, b, expected, result,
+          a,
+          b,
+          expected,
+          result,
           accurate,
           encryptionMs: t1 - t0,
           additionMs: t3 - t2,
           decryptionMs: t4 - t3,
           totalMs: t4 - t0,
-          error
+          error,
         });
       }
       results[schemeType] = caseResults;
@@ -315,7 +341,7 @@ app.get("/api/addition-benchmark", async (req, res) => {
         averageEncryptionMs: totalEncryption / n,
         averageAdditionMs: totalAddition / n,
         averageDecryptionMs: totalDecryption / n,
-        averageTotalMs: totalTotal / n
+        averageTotalMs: totalTotal / n,
       };
     }
     res.json({ ok: true, results, summaries });
@@ -325,15 +351,26 @@ app.get("/api/addition-benchmark", async (req, res) => {
   }
 });
 
-app.post("/api/parameter-benchmark", async (req, res) => {
-  const { scheme, polyModulusDegree, plainModulus, securityLevel, value } = req.body;
+app.post("/api/benchmark/parameters", async (req, res) => {
+  const { scheme, polyModulusDegree, plainModulus, securityLevel, value } =
+    req.body;
 
   try {
     let result;
     if (scheme === "bfv") {
-      result = await benchmarkBFVWithParams(value, polyModulusDegree, plainModulus, securityLevel);
+      result = await benchmarkBFVWithParams(
+        value,
+        polyModulusDegree,
+        plainModulus,
+        securityLevel,
+      );
     } else if (scheme === "ckks") {
-      result = await benchmarkCKKSWithParams(value, polyModulusDegree, plainModulus, securityLevel);
+      result = await benchmarkCKKSWithParams(
+        value,
+        polyModulusDegree,
+        plainModulus,
+        securityLevel,
+      );
     } else {
       return res.status(400).json({ error: "Invalid scheme" });
     }
@@ -345,10 +382,15 @@ app.post("/api/parameter-benchmark", async (req, res) => {
   }
 });
 
-async function benchmarkBFVWithParams(value, polyModulusDegree, plainModulus, securityLevel) {
+async function benchmarkBFVWithParams(
+  value,
+  polyModulusDegree,
+  plainModulus,
+  securityLevel,
+) {
   const parms = seal.EncryptionParameters(seal.SchemeType.bfv);
   parms.setPolyModulusDegree(polyModulusDegree);
-  
+
   // Convert security level to SEAL enum
   let sealSecurityLevel;
   switch (securityLevel) {
@@ -364,9 +406,11 @@ async function benchmarkBFVWithParams(value, polyModulusDegree, plainModulus, se
     default:
       throw new Error("Invalid security level");
   }
-  
-  parms.setCoeffModulus(seal.CoeffModulus.BFVDefault(polyModulusDegree, sealSecurityLevel));
-  
+
+  parms.setCoeffModulus(
+    seal.CoeffModulus.BFVDefault(polyModulusDegree, sealSecurityLevel),
+  );
+
   // Create plain modulus using SEAL's PlainModulus class
   const plainModulusValue = seal.PlainModulus.Batching(polyModulusDegree, 20);
   parms.setPlainModulus(plainModulusValue);
@@ -428,15 +472,20 @@ async function benchmarkBFVWithParams(value, polyModulusDegree, plainModulus, se
     parameters: {
       polyModulusDegree,
       plainModulus: plainModulusValue.value(),
-      securityLevel
-    }
+      securityLevel,
+    },
   };
 }
 
-async function benchmarkCKKSWithParams(value, polyModulusDegree, plainModulus, securityLevel) {
+async function benchmarkCKKSWithParams(
+  value,
+  polyModulusDegree,
+  plainModulus,
+  securityLevel,
+) {
   const parms = seal.EncryptionParameters(seal.SchemeType.ckks);
   parms.setPolyModulusDegree(polyModulusDegree);
-  
+
   // Convert security level to SEAL enum
   let sealSecurityLevel;
   switch (securityLevel) {
@@ -452,8 +501,13 @@ async function benchmarkCKKSWithParams(value, polyModulusDegree, plainModulus, s
     default:
       throw new Error("Invalid security level");
   }
-  
-  parms.setCoeffModulus(seal.CoeffModulus.Create(polyModulusDegree, Int32Array.from([60, 40, 40, 60])));
+
+  parms.setCoeffModulus(
+    seal.CoeffModulus.Create(
+      polyModulusDegree,
+      Int32Array.from([60, 40, 40, 60]),
+    ),
+  );
 
   const context = seal.Context(parms, true, sealSecurityLevel);
   if (!context.parametersSet()) {
@@ -512,8 +566,8 @@ async function benchmarkCKKSWithParams(value, polyModulusDegree, plainModulus, s
     parameters: {
       polyModulusDegree,
       plainModulus: 0, // Not used in CKKS
-      securityLevel
-    }
+      securityLevel,
+    },
   };
 }
 

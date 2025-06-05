@@ -38,7 +38,7 @@ export function ValueSize({ setError }: ValueSizeProps) {
     setError(null)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/addition-benchmark?max=${maxNumber}&step=${stepSize}`)
+      const response = await fetch(`${API_BASE_URL}/benchmark/value-size?max=${maxNumber}&step=${stepSize}`)
       if (!response.ok) {
         throw new Error('Failed to fetch benchmark data')
       }

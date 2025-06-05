@@ -325,6 +325,198 @@ app.get("/api/addition-benchmark", async (req, res) => {
   }
 });
 
+app.post("/api/parameter-benchmark", async (req, res) => {
+  const { scheme, polyModulusDegree, plainModulus, securityLevel, value } = req.body;
+
+  try {
+    let result;
+    if (scheme === "bfv") {
+      result = await benchmarkBFVWithParams(value, polyModulusDegree, plainModulus, securityLevel);
+    } else if (scheme === "ckks") {
+      result = await benchmarkCKKSWithParams(value, polyModulusDegree, plainModulus, securityLevel);
+    } else {
+      return res.status(400).json({ error: "Invalid scheme" });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error in parameter benchmark:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+async function benchmarkBFVWithParams(value, polyModulusDegree, plainModulus, securityLevel) {
+  const parms = seal.EncryptionParameters(seal.SchemeType.bfv);
+  parms.setPolyModulusDegree(polyModulusDegree);
+  
+  // Convert security level to SEAL enum
+  let sealSecurityLevel;
+  switch (securityLevel) {
+    case 128:
+      sealSecurityLevel = seal.SecurityLevel.tc128;
+      break;
+    case 192:
+      sealSecurityLevel = seal.SecurityLevel.tc192;
+      break;
+    case 256:
+      sealSecurityLevel = seal.SecurityLevel.tc256;
+      break;
+    default:
+      throw new Error("Invalid security level");
+  }
+  
+  parms.setCoeffModulus(seal.CoeffModulus.BFVDefault(polyModulusDegree, sealSecurityLevel));
+  
+  // Create plain modulus using SEAL's PlainModulus class
+  const plainModulusValue = seal.PlainModulus.Batching(polyModulusDegree, 20);
+  parms.setPlainModulus(plainModulusValue);
+
+  const context = seal.Context(parms, true, sealSecurityLevel);
+  if (!context.parametersSet()) {
+    throw new Error("Invalid parameters");
+  }
+
+  const keyGenerator = seal.KeyGenerator(context);
+  const secretKey = keyGenerator.secretKey();
+  const publicKey = keyGenerator.createPublicKey();
+  const encryptor = seal.Encryptor(context, publicKey);
+  const evaluator = seal.Evaluator(context);
+  const decryptor = seal.Decryptor(context, secretKey);
+
+  const encoder = seal.BatchEncoder(context);
+  const slotCount = encoder.slotCount();
+
+  // Create test data
+  const input = new Int32Array(slotCount);
+  for (let i = 0; i < slotCount; i++) {
+    input[i] = value;
+  }
+
+  // Measure encryption time
+  const encryptStart = performance.now();
+  const encrypted = encryptor.encrypt(encoder.encode(input));
+  const encryptEnd = performance.now();
+
+  // Measure computation time
+  const computeStart = performance.now();
+  const result = evaluator.square(encrypted);
+  const computeEnd = performance.now();
+
+  // Measure decryption time
+  const decryptStart = performance.now();
+  const decrypted = encoder.decode(decryptor.decrypt(result));
+  const decryptEnd = performance.now();
+
+  // Calculate error
+  const expected = new Int32Array(slotCount);
+  for (let i = 0; i < slotCount; i++) {
+    expected[i] = value * value;
+  }
+
+  let totalError = 0;
+  for (let i = 0; i < slotCount; i++) {
+    totalError += Math.abs(decrypted[i] - expected[i]);
+  }
+  const averageError = totalError / slotCount;
+
+  return {
+    encryptionTime: (encryptEnd - encryptStart).toFixed(2),
+    computationTime: (computeEnd - computeStart).toFixed(2),
+    decryptionTime: (decryptEnd - decryptStart).toFixed(2),
+    totalTime: (decryptEnd - encryptStart).toFixed(2),
+    error: averageError,
+    parameters: {
+      polyModulusDegree,
+      plainModulus: plainModulusValue.value(),
+      securityLevel
+    }
+  };
+}
+
+async function benchmarkCKKSWithParams(value, polyModulusDegree, plainModulus, securityLevel) {
+  const parms = seal.EncryptionParameters(seal.SchemeType.ckks);
+  parms.setPolyModulusDegree(polyModulusDegree);
+  
+  // Convert security level to SEAL enum
+  let sealSecurityLevel;
+  switch (securityLevel) {
+    case 128:
+      sealSecurityLevel = seal.SecurityLevel.tc128;
+      break;
+    case 192:
+      sealSecurityLevel = seal.SecurityLevel.tc192;
+      break;
+    case 256:
+      sealSecurityLevel = seal.SecurityLevel.tc256;
+      break;
+    default:
+      throw new Error("Invalid security level");
+  }
+  
+  parms.setCoeffModulus(seal.CoeffModulus.Create(polyModulusDegree, Int32Array.from([60, 40, 40, 60])));
+
+  const context = seal.Context(parms, true, sealSecurityLevel);
+  if (!context.parametersSet()) {
+    throw new Error("Invalid parameters");
+  }
+
+  const keyGenerator = seal.KeyGenerator(context);
+  const secretKey = keyGenerator.secretKey();
+  const publicKey = keyGenerator.createPublicKey();
+  const encryptor = seal.Encryptor(context, publicKey);
+  const evaluator = seal.Evaluator(context);
+  const decryptor = seal.Decryptor(context, secretKey);
+
+  const encoder = seal.CKKSEncoder(context);
+  const slotCount = encoder.slotCount();
+
+  // Create test data
+  const input = new Float64Array(slotCount);
+  for (let i = 0; i < slotCount; i++) {
+    input[i] = value;
+  }
+
+  // Measure encryption time
+  const encryptStart = performance.now();
+  const encrypted = encryptor.encrypt(encoder.encode(input));
+  const encryptEnd = performance.now();
+
+  // Measure computation time
+  const computeStart = performance.now();
+  const result = evaluator.square(encrypted);
+  const computeEnd = performance.now();
+
+  // Measure decryption time
+  const decryptStart = performance.now();
+  const decrypted = encoder.decode(decryptor.decrypt(result));
+  const decryptEnd = performance.now();
+
+  // Calculate error
+  const expected = new Float64Array(slotCount);
+  for (let i = 0; i < slotCount; i++) {
+    expected[i] = value * value;
+  }
+
+  let totalError = 0;
+  for (let i = 0; i < slotCount; i++) {
+    totalError += Math.abs(decrypted[i] - expected[i]);
+  }
+  const averageError = totalError / slotCount;
+
+  return {
+    encryptionTime: (encryptEnd - encryptStart).toFixed(2),
+    computationTime: (computeEnd - computeStart).toFixed(2),
+    decryptionTime: (decryptEnd - decryptStart).toFixed(2),
+    totalTime: (decryptEnd - encryptStart).toFixed(2),
+    error: averageError,
+    parameters: {
+      polyModulusDegree,
+      plainModulus: 0, // Not used in CKKS
+      securityLevel
+    }
+  };
+}
+
 const PORT = process.env.PORT || 18080;
 app.listen(PORT, () => {
   log("Startup", `Server listening on http://localhost:${PORT}`);

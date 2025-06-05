@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ValueSize } from "@/components/value-size"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { PerformanceMetrics } from "@/components/performance-metrics-display"
+import { SchemeParameters } from "@/components/scheme-parameters"
 
 export default function BenchmarkPage() {
   const [error, setError] = useState<string | null>(null)
@@ -22,7 +23,7 @@ export default function BenchmarkPage() {
         </div>
 
         <Tabs defaultValue="metrics" value={activeTab} onValueChange={setActiveTab} className="w-full gap-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="metrics" className="flex items-center gap-2">
               <BarChart className="w-4 h-4" />
               Performance Metrics
@@ -32,6 +33,10 @@ export default function BenchmarkPage() {
               <LineChart className="w-4 h-4" />
               Value Size
             </TabsTrigger>
+
+            <TabsTrigger value="parameters" className="flex items-center gap-2">
+              Scheme Parameters
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="metrics">
@@ -40,6 +45,10 @@ export default function BenchmarkPage() {
 
           <TabsContent value="visualization">
             <ValueSize setError={setError} />
+          </TabsContent>
+
+          <TabsContent value="parameters">
+            <SchemeParameters />
           </TabsContent>
         </Tabs>
         {error && (

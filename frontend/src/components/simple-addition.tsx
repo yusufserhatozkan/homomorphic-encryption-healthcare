@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Calculator, Unlock, ArrowRight } from "lucide-react"
 import { useSeal } from "@/lib/homomorphic-service"
+import { API_BASE_URL } from "@/config/api"
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,8 +11,6 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-const API_BASE_URL = "http://localhost:18080/api/add"
 
 interface SimpleAdditionProps {
   setError: (error: string | null) => void
@@ -62,7 +61,7 @@ export default function SimpleAddition({ setError }: SimpleAdditionProps) {
 
       // Send encrypted numbers and public key to server for homomorphic addition
       const requestStart = performance.now()
-      const res = await fetch(API_BASE_URL, {
+      const res = await fetch(`${API_BASE_URL}/addition`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

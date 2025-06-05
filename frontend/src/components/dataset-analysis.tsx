@@ -1,12 +1,15 @@
 import { useState, useCallback } from "react"
 import { Database, Upload, Calculator } from "lucide-react"
 import { useSeal } from "@/lib/homomorphic-service"
+import { API_BASE_URL } from "@/config/api"
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import DatasetResultCard from "./dataset-result-card"
+import { Input } from "@/components/ui/input"
 
 interface DatasetAnalysisProps {
   setError: (error: string | null) => void
@@ -20,6 +23,9 @@ export default function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
   const [datasetResult, setDatasetResult] = useState<{ type: string; value: number; column: string } | null>(null)
   const { loading, encryptNumber, decryptToNumber, publicKey, schemeType, setSchemeType } = useSeal()
   const [processingDataset, setProcessingDataset] = useState(false)
+  const [result, setResult] = useState<any>(null)
+  const [loadingResult, setLoadingResult] = useState(false)
+  const [errorResult, setErrorResult] = useState<string | null>(null)
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -78,14 +84,13 @@ export default function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
       }
 
       // Send to backend for calculation
-      const response = await fetch("http://localhost:18080/api/dataset", {
+      const response = await fetch(`${API_BASE_URL}/dataset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           encryptedValues,
-          calculationType,
-          publicKeyBase64: publicKey,
-          schemeType
+          publicKey,
+          schemeType,
         }),
       })
 
@@ -110,6 +115,30 @@ export default function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
       setError(error instanceof Error ? error.message : "Unknown error")
     } finally {
       setProcessingDataset(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoadingResult(true)
+    setErrorResult(null)
+    try {
+      const response = await fetch(`${API_BASE_URL}/dataset-analysis`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ numbers: numbers.split(",").map(Number) }),
+      })
+      if (!response.ok) {
+        throw new Error("Failed to analyze dataset")
+      }
+      const data = await response.json()
+      setResult(data)
+    } catch (err) {
+      setErrorResult(err instanceof Error ? err.message : "An error occurred")
+    } finally {
+      setLoadingResult(false)
     }
   }
 

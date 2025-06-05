@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts"
+import { API_BASE_URL } from "@/config/api"
 
 interface BenchmarkData {
   results: {
@@ -37,14 +38,14 @@ export function ValueSize({ setError }: ValueSizeProps) {
     setError(null)
 
     try {
-      const res = await fetch(`http://localhost:18080/api/addition-benchmark?max=${maxNumber}&step=${stepSize}`)
-      if (!res.ok) {
-        throw new Error("Failed to fetch benchmark data")
+      const response = await fetch(`${API_BASE_URL}/addition-benchmark?max=${maxNumber}&step=${stepSize}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch benchmark data')
       }
-      const json = await res.json()
-      setData(json)
+      const data = await response.json()
+      setData(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch benchmark data")
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }

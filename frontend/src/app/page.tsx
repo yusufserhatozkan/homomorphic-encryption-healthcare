@@ -6,8 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 import SimpleAddition from "@/components/simple-addition"
-import DatasetAnalysis from "@/components/dataset-analysis"
 import AboutSection from "@/components/about-section"
+import { DatasetAnalysis } from "@/components/dataset-analysis"
 
 export default function Home() {
   const [error, setError] = useState<string | null>(null)

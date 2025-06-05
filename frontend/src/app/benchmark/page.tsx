@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import { BarChart, LineChart } from 'lucide-react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ValueSize } from "@/components/value-size"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { PerformanceMetrics } from "@/components/performance-metrics-display"
 import { SchemeParameters } from "@/components/scheme-parameters"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ValueSize } from "@/components/value-size"
+import { BarChart, LineChart, SlidersHorizontal } from 'lucide-react'
+import { useState } from "react"
 
 export default function BenchmarkPage() {
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +35,7 @@ export default function BenchmarkPage() {
             </TabsTrigger>
 
             <TabsTrigger value="parameters" className="flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4" />
               Scheme Parameters
             </TabsTrigger>
           </TabsList>

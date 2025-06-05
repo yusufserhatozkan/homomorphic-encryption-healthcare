@@ -215,17 +215,17 @@ app.post("/api/dataset", (req, res) => {
 app.get("/api/addition-benchmark", async (req, res) => {
   log("Benchmark", "Starting backend addition benchmark for BFV and CKKS");
   try {
+    // Get parameters from query string with defaults
+    const maxNumber = parseInt(req.query.max) || 500000;
+    const stepSize = parseInt(req.query.step) || 500;
+
     // Generate deterministic test cases
     const testCases = [];
-    // Only one loop: values from 0 to 10_000_000, step 1000
-    for (let a = 0; a <= 500_000; a += 500) {
+    // Values from 0 to maxNumber, with specified step size
+    for (let a = 0; a <= maxNumber; a += stepSize) {
       testCases.push({ a, b: a }); // test a + a
     }
-    // Optionally, add a few edge floating point cases
-    // const floatEdges = [1e-6, -1e-6, 1e6, -1e6, 3.14159, 2.71828, -3.14159, -2.71828];
-    // for (const a of floatEdges) {
-    //   testCases.push({ a, b: a });
-    // }
+
     const schemes = ["bfv", "ckks"];
     const results = {};
     const summaries = {};

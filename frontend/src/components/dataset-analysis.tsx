@@ -1,13 +1,13 @@
 import { useState, useCallback } from "react"
-import { Database, Upload, Calculator } from "lucide-react"
+import { Database, Upload, Calculator, ArrowRight, Unlock } from "lucide-react"
 import { useSeal } from "@/lib/homomorphic-service"
 import { API_BASE_URL } from "@/config/api"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import DatasetResultCard from "./dataset-result-card"
+import { Badge } from "@/components/ui/badge"
 
 interface DatasetResult {
   type: string
@@ -15,53 +15,96 @@ interface DatasetResult {
   column: string
 }
 
+interface ProcessTimings {
+  clientEncryption: number;
+  networkRequest: number;
+  serverProcessing: number;
+  clientDecryption: number;
+  totalTime: number;
+}
+
+type CalculationType = "sum" | "average" | "min" | "max";
+
 interface DatasetAnalysisProps {
   setError: (error: string | null) => void
 }
 
+interface CSVData {
+  headers: string[];
+  rows: string[][];
+}
+
 export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
   const [file, setFile] = useState<File | null>(null)
+  const [csvData, setCSVData] = useState<CSVData | null>(null)
+  const [selectedColumn, setSelectedColumn] = useState<string>("")
   const [result, setResult] = useState<DatasetResult | null>(null)
-  const { loading, encryptNumber, publicKey, schemeType, setSchemeType } = useSeal()
+  const [timings, setTimings] = useState<ProcessTimings | null>(null)
+  const [calculationType, setCalculationType] = useState<CalculationType>("sum")
+  const { loading, encryptNumber, decryptToNumber, publicKey, schemeType, setSchemeType } = useSeal()
   const [processingDataset, setProcessingDataset] = useState(false)
 
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const parseCSV = (text: string): CSVData => {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+    const headers = lines[0].split(',').map(header => header.trim());
+    const rows = lines.slice(1).map(line => line.split(',').map(cell => cell.trim()));
+    return { headers, rows };
+  }
+
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      setFile(file)
-      setError(null)
+      try {
+        const text = await file.text();
+        const parsedData = parseCSV(text);
+        setCSVData(parsedData);
+        setFile(file);
+        setSelectedColumn(parsedData.headers[0]); // Select first column by default
+        setError(null);
+      } catch {
+        setError("Failed to parse CSV file. Please ensure it's properly formatted.");
+      }
     }
   }, [setError])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!file) {
-      setError("Please select a file first")
+    if (!file || !csvData || !selectedColumn) {
+      setError("Please select a file and column first")
       return
     }
 
     setProcessingDataset(true)
     setError(null)
     setResult(null)
+    setTimings(null)
+
+    const startTime = performance.now()
 
     try {
-      const text = await file.text()
-      const numbers = text
-        .split(/[\n,]/)
-        .map((n) => n.trim())
-        .filter((n) => n)
-        .map(Number)
+      // Get the index of the selected column
+      const columnIndex = csvData.headers.indexOf(selectedColumn);
+      if (columnIndex === -1) {
+        throw new Error("Selected column not found in CSV");
+      }
+
+      // Extract numbers from the selected column
+      const numbers = csvData.rows
+        .map(row => row[columnIndex])
+        .map(n => Number(n))
+        .filter(n => !isNaN(n));
 
       if (numbers.length === 0) {
-        throw new Error("No valid numbers found in the file")
+        throw new Error("No valid numbers found in the selected column")
       }
 
       // Encrypt each number
-      const encryptionStart = performance.now()
+      const encryptStart = performance.now()
       const encryptedValues = await Promise.all(numbers.map(encryptNumber))
-      const encryptionTime = performance.now() - encryptionStart
+      const clientEncryptionTime = performance.now() - encryptStart
 
       // Send to backend for calculation
+      const requestStart = performance.now()
       const response = await fetch(`${API_BASE_URL}/demo/dataset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -69,21 +112,39 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
           encryptedValues,
           publicKey,
           schemeType,
-          encryptionTime,
+          calculationType
         }),
       })
+      const data = await response.json()
+      const networkTime = performance.now() - requestStart
 
       if (!response.ok) {
         throw new Error("Failed to process dataset")
       }
 
-      const data = await response.json()
+      // Decrypt the result
+      const decryptStart = performance.now()
+      const decryptedResult = decryptToNumber(data.encryptedResult)
+      const clientDecryptionTime = performance.now() - decryptStart
+
+      if (decryptedResult === null) {
+        setError("Decryption failed")
+        return
+      }
+
       const result: DatasetResult = {
         type: "dataset",
-        value: data.sum,
-        column: "All Numbers",
+        value: decryptedResult,
+        column: `${calculationType.charAt(0).toUpperCase() + calculationType.slice(1)} of ${selectedColumn}`,
       }
       setResult(result)
+      setTimings({
+        clientEncryption: clientEncryptionTime,
+        networkRequest: networkTime,
+        serverProcessing: data.timings?.serverProcessing || 0,
+        clientDecryption: clientDecryptionTime,
+        totalTime: performance.now() - startTime
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
@@ -92,65 +153,185 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
   }
 
   return (
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              Dataset Analysis
+            </CardTitle>
+            <CardDescription>
+              Upload a CSV file and select a numeric column to perform homomorphic
+              encryption operations on the data.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="file">Dataset File (CSV)</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => document.getElementById("file")?.click()}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {file ? file.name : "Choose File"}
+                </Button>
+                <input
+                  id="file"
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="column">Select Column</Label>
+                <Select
+                  value={selectedColumn}
+                  onValueChange={setSelectedColumn}
+                  disabled={!csvData}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a column" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {csvData?.headers.map((header) => (
+                      <SelectItem key={header} value={header}>
+                        {header}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="calculation">Calculation Type</Label>
+                <Select
+                  value={calculationType}
+                  onValueChange={(value: CalculationType) => setCalculationType(value)}
+                  disabled={!csvData}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select calculation type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sum">Sum</SelectItem>
+                    <SelectItem value="average">Average</SelectItem>
+                    <SelectItem value="min">Minimum</SelectItem>
+                    <SelectItem value="max">Maximum</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-row gap-4">
+            <div className="flex">
+              <Label htmlFor="scheme" className="sr-only">Encryption Scheme</Label>
+              <Select value={schemeType} onValueChange={(value: "bfv" | "ckks") => setSchemeType(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select scheme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bfv">BFV</SelectItem>
+                  <SelectItem value="ckks">CKKS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={handleSubmit}
+              disabled={loading || processingDataset || !publicKey || !selectedColumn}
+              className="flex-1"
+            >
+              {loading || processingDataset ? (
+                <>
+                  <Calculator className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Database className="mr-2 h-4 w-4" />
+                  Analyze Dataset
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <ResultCard result={result} />
+      </div>
+
+      {timings && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ArrowRight className="w-5 h-5" />
+              Process Flow
+            </CardTitle>
+            <CardDescription>Timing information for each step of the dataset analysis process</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-5 gap-4">
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Client Encryption</div>
+                <div className="text-2xl font-mono">{timings.clientEncryption.toFixed(2)}ms</div>
+                <div className="text-xs text-muted-foreground">Encrypting dataset numbers</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Network Request</div>
+                <div className="text-2xl font-mono">{timings.networkRequest.toFixed(2)}ms</div>
+                <div className="text-xs text-muted-foreground">Sending to server</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Server Processing</div>
+                <div className="text-2xl font-mono">{timings.serverProcessing.toFixed(2)}ms</div>
+                <div className="text-xs text-muted-foreground">Homomorphic computation</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Client Decryption</div>
+                <div className="text-2xl font-mono">{timings.clientDecryption.toFixed(2)}ms</div>
+                <div className="text-xs text-muted-foreground">Decrypting result</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Total Time</div>
+                <div className="text-2xl font-mono">{timings.totalTime.toFixed(2)}ms</div>
+                <div className="text-xs text-muted-foreground">Complete operation</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+function ResultCard({ result }: { result: DatasetResult | null }) {
+  return (
     <Card>
       <CardHeader>
-        <CardTitle>Dataset Analysis</CardTitle>
-        <CardDescription>
-          Upload a file containing numbers (comma or newline separated) to perform homomorphic
-          encryption operations on the entire dataset.
-        </CardDescription>
+        <CardTitle>Results</CardTitle>
+        <CardDescription>The decrypted result of the homomorphic dataset analysis</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="scheme">Encryption Scheme</Label>
-            <Select value={schemeType} onValueChange={(value: "bfv" | "ckks") => setSchemeType(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select scheme" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bfv">BFV</SelectItem>
-                <SelectItem value="ckks">CKKS</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="flex items-center gap-2">
+              <Unlock className="w-4 h-4" />
+              {result?.column || "Decrypted Result"}
+            </Label>
+            <Badge variant="outline">Plain Text Result</Badge>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="file">Dataset File</Label>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => document.getElementById("file")?.click()}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                {file ? file.name : "Choose File"}
-              </Button>
-              <input
-                id="file"
-                type="file"
-                accept=".txt,.csv"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </div>
+          <div className="p-4 bg-muted rounded-md font-mono text-lg flex items-center justify-center h-38">
+            {result !== null ? result.value : "-"}
           </div>
-          <Button type="submit" className="w-full" disabled={loading || processingDataset}>
-            {loading || processingDataset ? (
-              <>
-                <Calculator className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Database className="mr-2 h-4 w-4" />
-                Analyze Dataset
-              </>
-            )}
-          </Button>
-        </form>
+          <p className="text-xs text-muted-foreground">
+            The result is decrypted on the client side after server-side homomorphic computation
+          </p>
+        </div>
       </CardContent>
-      {result && <DatasetResultCard result={result} />}
     </Card>
   )
 }

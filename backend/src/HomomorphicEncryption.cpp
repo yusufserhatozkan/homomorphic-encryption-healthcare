@@ -68,9 +68,12 @@ HomomorphicEncryption::HomomorphicEncryption(bool use_ckks, bool should_generate
 
 void HomomorphicEncryption::init_bfv() {
     parms = seal::EncryptionParameters(seal::scheme_type::bfv);
-    size_t poly_modulus_degree = 4096;
+    size_t poly_modulus_degree = 8192;
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    parms.set_coeff_modulus(seal::CoeffModulus::BFVDefault(poly_modulus_degree));
+
+    parms.set_coeff_modulus(seal::CoeffModulus::Create(
+        poly_modulus_degree, {50, 30, 30, 50}));
+
     parms.set_plain_modulus(seal::PlainModulus::Batching(poly_modulus_degree, 20));
 }
 
@@ -78,9 +81,11 @@ void HomomorphicEncryption::init_ckks() {
     parms = seal::EncryptionParameters(seal::scheme_type::ckks);
     size_t poly_modulus_degree = 8192;
     parms.set_poly_modulus_degree(poly_modulus_degree);
+
     parms.set_coeff_modulus(seal::CoeffModulus::Create(
-        poly_modulus_degree, { 50, 30, 30, 50 }));
+        poly_modulus_degree, {50, 30, 30, 50}));
 }
+
 
 void HomomorphicEncryption::generate_keys() {
     auto start = std::chrono::high_resolution_clock::now();

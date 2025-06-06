@@ -18,7 +18,7 @@ const MAIN_BACKEND_URL = 'http://localhost:18080';
 
 const generateTestValues = () => {
   const result = [];
-  for (let i = 10; i <= 10000; i *= 1.5) {
+  for (let i = 0; i <= 500000; i += 1000) {
     const rounded = Math.round(i);
     result.push([rounded, rounded * 2]);
   }
@@ -70,6 +70,10 @@ function Experiment() {
         add: addTime,
         decrypt: decryptTime,
         total: totalTime,
+        ramA: encA.data.ram_kb,
+        ramB: encB.data.ram_kb,
+        ramAdd: addRes.data.ram_kb,
+        ramDecrypt: decRes.data.ram_kb,
       });
     }
 
@@ -163,6 +167,75 @@ function Experiment() {
                 {
                   label: 'CKKS - Decrypt',
                   data: ckksResults.map((r) => r.decrypt),
+                  borderColor: 'darkorange',
+                  tension: 0.4,
+                  fill: false,
+                },
+              ],
+            }}
+          />
+
+          <h3>RAM Usage - Encryption (KB)</h3>
+          <Line
+            data={{
+              labels: bfvResults.map((r) => r.input),
+              datasets: [
+                {
+                  label: 'BFV - Encrypt (A + B)',
+                  data: bfvResults.map((r) => r.ramA + r.ramB),
+                  borderColor: 'blue',
+                  tension: 0.4,
+                  fill: false,
+                },
+                {
+                  label: 'CKKS - Encrypt (A + B)',
+                  data: ckksResults.map((r) => r.ramA + r.ramB),
+                  borderColor: 'orange',
+                  tension: 0.4,
+                  fill: false,
+                },
+              ],
+            }}
+          />
+
+          <h3>RAM Usage - Addition (KB)</h3>
+          <Line
+            data={{
+              labels: bfvResults.map((r) => r.input),
+              datasets: [
+                {
+                  label: 'BFV - Add',
+                  data: bfvResults.map((r) => r.ramAdd),
+                  borderColor: 'purple',
+                  tension: 0.4,
+                  fill: false,
+                },
+                {
+                  label: 'CKKS - Add',
+                  data: ckksResults.map((r) => r.ramAdd),
+                  borderColor: 'red',
+                  tension: 0.4,
+                  fill: false,
+                },
+              ],
+            }}
+          />
+
+          <h3>RAM Usage - Decryption (KB)</h3>
+          <Line
+            data={{
+              labels: bfvResults.map((r) => r.input),
+              datasets: [
+                {
+                  label: 'BFV - Decrypt',
+                  data: bfvResults.map((r) => r.ramDecrypt),
+                  borderColor: 'green',
+                  tension: 0.4,
+                  fill: false,
+                },
+                {
+                  label: 'CKKS - Decrypt',
+                  data: ckksResults.map((r) => r.ramDecrypt),
                   borderColor: 'darkorange',
                   tension: 0.4,
                   fill: false,

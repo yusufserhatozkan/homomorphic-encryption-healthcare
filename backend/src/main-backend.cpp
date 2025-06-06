@@ -67,18 +67,27 @@ int main() {
             std::cout << "Homomorphic addition was done in " << duration_us << " microseconds\n";
             std::cout << "Throughput: " << (1000000.0 / duration_us) << " operations per second\n";
 
-#if defined(_WIN32)
-            PROCESS_MEMORY_COUNTERS memInfo;
-            GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
-            std::cout << "RAM usage: " << (memInfo.WorkingSetSize / 1024) << " KB\n";
-#else
-            struct rusage usage;
-            getrusage(RUSAGE_SELF, &usage);
-            std::cout << "RAM usage: " << usage.ru_maxrss << " KB\n";
-#endif
+            size_t ram_kb = 0;
+
+            #if defined(_WIN32)
+                PROCESS_MEMORY_COUNTERS memInfo;
+                GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
+                ram_kb = memInfo.WorkingSetSize / 1024;
+            #else
+                struct rusage usage;
+                getrusage(RUSAGE_SELF, &usage);
+                #ifdef __APPLE__
+                    ram_kb = usage.ru_maxrss / 1024;
+                #else
+                    ram_kb = usage.ru_maxrss;
+                #endif
+            #endif
+
+            response["ram_kb"] = ram_kb;
+
+
 
             print_session_end();  // End of a session
-
             response["ciphertext"] = encrypted_result;
             response["execution_us"] = duration_us;
             return crow::response(200, response);

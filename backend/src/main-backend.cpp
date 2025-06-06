@@ -80,6 +80,7 @@ int main() {
             print_session_end();  // End of a session
 
             response["ciphertext"] = encrypted_result;
+            response["execution_us"] = duration_us;
             return crow::response(200, response);
         } catch (const std::exception& e) {
             response["error"] = e.what();

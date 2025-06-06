@@ -82,6 +82,7 @@ int main() {
             encryption_count++;
 
             response["ciphertext"] = ciphertext;
+            response["execution_us"] = duration_us;
             return crow::response(200, response);
         } catch (const std::exception& e) {
             response["error"] = e.what();
@@ -134,6 +135,7 @@ int main() {
             print_session_end();  // End of session after 2 encryptions + 1 decryption
 
             response["value"] = value;
+            response["execution_us"] = duration_us;
             return crow::response(200, response);
         } catch (const std::exception& e) {
             response["error"] = e.what();

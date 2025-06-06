@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import axios from 'axios';
+import Experiment from './Experiment';
 
-const MINI_BACKEND_URL = 'http://localhost:18081'; // Szyfrowanie/deszyfrowanie
-const MAIN_BACKEND_URL = 'http://localhost:18080'; // Operacje na zaszyfrowanych danych
+
+const MINI_BACKEND_URL = 'http://localhost:18081'; 
+const MAIN_BACKEND_URL = 'http://localhost:18080'; 
 
 function App() {
     const [backendData, setBackendData] = useState(null);
@@ -43,7 +45,6 @@ function App() {
         setError(null);
 
         try {
-            // 1. Szyfrowanie liczb przez mini-backend
             const encryptResponseA = await axios.post(`${MINI_BACKEND_URL}/encrypt`, {
                 value: a,
                 scheme: numberScheme
@@ -57,7 +58,6 @@ function App() {
             const encryptedA = encryptResponseA.data.ciphertext;
             const encryptedB = encryptResponseB.data.ciphertext;
 
-            // 2. Przesłanie zaszyfrowanych danych do głównego backendu
             const addResponse = await axios.post(`${MAIN_BACKEND_URL}/add_encrypted`, {
                 a: encryptedA,
                 b: encryptedB,
@@ -66,7 +66,6 @@ function App() {
 
             const encryptedResult = addResponse.data.ciphertext;
 
-            // 3. Deszyfrowanie wyniku przez mini-backend
             const decryptResponse = await axios.post(`${MINI_BACKEND_URL}/decrypt`, {
                 ciphertext: encryptedResult,
                 scheme: numberScheme
@@ -161,6 +160,9 @@ function App() {
                         <pre>{JSON.stringify(backendData, null, 2)}</pre>
                     </section>
                 )}
+                <div style={{ marginTop: '3rem' }}>
+                    <Experiment />
+                </div>
             </main>
 
             <footer>

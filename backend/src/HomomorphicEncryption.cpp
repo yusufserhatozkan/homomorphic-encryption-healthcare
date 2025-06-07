@@ -5,6 +5,8 @@
 #include <cmath>
 #include <sstream>
 #include <iomanip>
+#include <chrono>
+#include <iostream>
 
 namespace {
     const std::string base64_chars = 
@@ -66,9 +68,12 @@ HomomorphicEncryption::HomomorphicEncryption(bool use_ckks, bool should_generate
 
 void HomomorphicEncryption::init_bfv() {
     parms = seal::EncryptionParameters(seal::scheme_type::bfv);
-    size_t poly_modulus_degree = 4096;
+    size_t poly_modulus_degree = 8192;
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    parms.set_coeff_modulus(seal::CoeffModulus::BFVDefault(poly_modulus_degree));
+
+    parms.set_coeff_modulus(seal::CoeffModulus::Create(
+        poly_modulus_degree, {50, 30, 30, 50}));
+
     parms.set_plain_modulus(seal::PlainModulus::Batching(poly_modulus_degree, 20));
 }
 
@@ -76,11 +81,15 @@ void HomomorphicEncryption::init_ckks() {
     parms = seal::EncryptionParameters(seal::scheme_type::ckks);
     size_t poly_modulus_degree = 8192;
     parms.set_poly_modulus_degree(poly_modulus_degree);
+
     parms.set_coeff_modulus(seal::CoeffModulus::Create(
-        poly_modulus_degree, { 50, 30, 30, 50 }));
+        poly_modulus_degree, {50, 30, 30, 50}));
 }
 
+
 void HomomorphicEncryption::generate_keys() {
+    auto start = std::chrono::high_resolution_clock::now();
+
     seal::KeyGenerator keygen(*context);
     secret_key = keygen.secret_key();
     keygen.create_public_key(public_key);
@@ -94,6 +103,27 @@ void HomomorphicEncryption::generate_keys() {
     } else {
         bfv_encoder = std::make_unique<seal::BatchEncoder>(*context);
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+    // Calculate public key size by serializing
+    std::stringstream ss;
+    public_key.save(ss);
+    std::string pubkey_str = ss.str();
+    size_t pubkey_size_bytes = pubkey_str.size();
+
+    std::cout << "Key generation time: " << duration << " microseconds" << std::endl;
+    std::cout << "Poly modulus degree: " << parms.poly_modulus_degree() << std::endl;
+
+    // ✅ Added: Print modulus coefficients
+    std::cout << "Modulus Coefficients: [ ";
+    for (const auto& mod : parms.coeff_modulus()) {
+        std::cout << mod.value() << " ";
+    }
+    std::cout << "]" << std::endl;
+
+    std::cout << "Key size: " << pubkey_size_bytes << " bytes" << std::endl;
 }
 
 HomomorphicEncryption::~HomomorphicEncryption() = default;

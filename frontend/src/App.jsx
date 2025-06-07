@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import axios from 'axios';
+import Experiment from './Experiment';
 
 const MINI_BACKEND_URL = 'http://localhost:18081'; // mini-backend
 const MAIN_BACKEND_URL = 'http://localhost:18080'; // main-backend
@@ -297,6 +298,9 @@ function App() {
                         <pre>{JSON.stringify(backendData, null, 2)}</pre>
                     </section>
                 )}
+                <div style={{ marginTop: '3rem' }}>
+                    <Experiment />
+                </div>
             </main>
 
             <footer>

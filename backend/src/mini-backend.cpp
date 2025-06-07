@@ -142,7 +142,7 @@ int main() {
     ([&](const crow::request& req) {
         auto json_data = crow::json::load(req.body);
         crow::json::wvalue response;
-        
+
         if (!json_data || !json_data.has("value") || !json_data.has("scheme")) {
             response["error"] = "Missing required fields";
             return crow::response(400, response);
@@ -152,9 +152,12 @@ int main() {
             std::string scheme = json_data["scheme"].s();
             double value = json_data["value"].d();
 
-            std::cout << "Encrypting | Scheme: " << scheme << " | Value: " << value << std::endl;
-            
-            std::string ciphertext;
+            if (encryption_count % 2 == 0) {
+                print_session_start();  // Start of session every 2 encryptions
+            }
+
+            auto start = std::chrono::high_resolution_clock::now();
+
             if (scheme == "bfv") {
                 ciphertext = he_bfv.encrypt(value);
             } else if (scheme == "ckks") {
@@ -162,11 +165,37 @@ int main() {
             } else {
                 throw std::runtime_error("Invalid scheme");
             }
-            
-            std::cout << "Encrypted | Scheme: " << scheme 
-                      << " | Ciphertext (first 20): " << log_cipher << std::endl;
-            
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            std::cout << "Encryption was done in " << duration_us << " microseconds\n";
+            std::cout << "Throughput: " << (1000000.0 / duration_us) << " operations per second\n";
+
+            size_t ram_kb = 0;
+
+            #if defined(_WIN32)
+                PROCESS_MEMORY_COUNTERS memInfo;
+                GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
+                ram_kb = memInfo.WorkingSetSize / 1024;
+            #else
+                struct rusage usage;
+                getrusage(RUSAGE_SELF, &usage);
+                #ifdef __APPLE__
+                    ram_kb = usage.ru_maxrss / 1024;
+                #else
+                    ram_kb = usage.ru_maxrss;
+                #endif
+            #endif
+
+            response["ram_kb"] = ram_kb;
+
+
+
+            print_op_separator(); // Separator after encryption
+            encryption_count++;
+
             response["ciphertext"] = ciphertext;
+            response["execution_us"] = duration_us;
             return crow::response(200, response);
         } catch (const std::exception& e) {
             std::cout << "Encryption failed: " << e.what() << std::endl;
@@ -180,7 +209,7 @@ int main() {
     ([&](const crow::request& req) {
         auto json_data = crow::json::load(req.body);
         crow::json::wvalue response;
-        
+
         if (!json_data || !json_data.has("ciphertext") || !json_data.has("scheme")) {
             response["error"] = "Missing required fields";
             std::cout << "Decryption failed: Missing required fields" << std::endl;
@@ -192,11 +221,8 @@ int main() {
             std::string ciphertext = json_data["ciphertext"].s();
             
 
-            
-            std::cout << "Decrypting | Scheme: " << scheme 
-                      << " | Ciphertext (first 20): " << log_cipher << std::endl;
-            
-            double value;
+            auto start = std::chrono::high_resolution_clock::now();
+
             if (scheme == "bfv") {
                 value = he_bfv.decrypt(ciphertext);
             } else if (scheme == "ckks") {
@@ -204,11 +230,37 @@ int main() {
             } else {
                 throw std::runtime_error("Invalid scheme");
             }
-            
-            std::cout << "Decrypted | Scheme: " << scheme 
-                      << " | Value: " << value << std::endl;
-            
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            std::cout << "Decryption was done in " << duration_us << " microseconds\n";
+            std::cout << "Throughput: " << (1000000.0 / duration_us) << " operations per second\n";
+
+            size_t ram_kb = 0;
+
+            #if defined(_WIN32)
+                PROCESS_MEMORY_COUNTERS memInfo;
+                GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
+                ram_kb = memInfo.WorkingSetSize / 1024;
+            #else
+                struct rusage usage;
+                getrusage(RUSAGE_SELF, &usage);
+                #ifdef __APPLE__
+                    ram_kb = usage.ru_maxrss / 1024;
+                #else
+                    ram_kb = usage.ru_maxrss;
+                #endif
+            #endif
+
+            response["ram_kb"] = ram_kb;
+
+
+
+            print_op_separator(); // Separator after decryption
+            print_session_end();  // End of session after 2 encryptions + 1 decryption
+
             response["value"] = value;
+            response["execution_us"] = duration_us;
             return crow::response(200, response);
         } catch (const std::exception& e) {
             std::cout << "Decryption failed: " << e.what() << std::endl;
@@ -238,6 +290,15 @@ int main() {
         }
     });
 
+    CROW_ROUTE(app, "/")
+    .methods("OPTIONS"_method)
+    ([](const crow::request& req, crow::response& res) {
+        res.code = 200;
+        res.end();
+    });
+
     std::cout << "Starting mini-backend on port 18081...\n";
+    std::cout << "###########################\n"; // Only once at backend start
+
     app.port(18081).multithreaded().run();
 }

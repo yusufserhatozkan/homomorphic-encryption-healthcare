@@ -68,6 +68,12 @@ int main() {
 
             auto end = std::chrono::high_resolution_clock::now();
             auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            std::cout << "Homomorphic addition | Scheme: " << scheme
+                      << " | A (first 20): " << log_cipher(encrypted_a)
+                      << " | B (first 20): " << log_cipher(encrypted_b) << std::endl;
+            std::cout << "Homomorphic addition result | Scheme: " << scheme
+                      << " | Result (first 20): " << log_cipher(encrypted_result) << std::endl
+
             std::cout << "Homomorphic addition was done in " << duration_us << " microseconds\n";
             std::cout << "Throughput: " << (1000000.0 / duration_us) << " operations per second\n";
 

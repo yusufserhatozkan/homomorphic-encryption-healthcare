@@ -189,8 +189,12 @@ int main() {
 
             auto end = std::chrono::high_resolution_clock::now();
             auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            std::cout << "Encrypted | Scheme: " << scheme 
+                      << " | Ciphertext (first 20): " << log_cipher << std::endl;
+
             std::cout << "Encryption was done in " << duration_us << " microseconds\n";
             std::cout << "Throughput: " << (1000000.0 / duration_us) << " operations per second\n";
+
 
             size_t ram_kb = 0;
 
@@ -252,6 +256,9 @@ int main() {
 
             auto end = std::chrono::high_resolution_clock::now();
             auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+            std::cout << "Decrypting | Scheme: " << scheme 
+                      << " | Ciphertext (first 20): " << log_cipher << std::endl;
+
             std::cout << "Decryption was done in " << duration_us << " microseconds\n";
             std::cout << "Throughput: " << (1000000.0 / duration_us) << " operations per second\n";
 

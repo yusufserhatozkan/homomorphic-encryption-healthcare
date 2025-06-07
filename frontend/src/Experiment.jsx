@@ -284,33 +284,35 @@ function Experiment() {
           />
 
           <h3>Average Metrics</h3>
-          <table border="1" cellPadding="8" style={{ marginBottom: '2rem' }}>
-            <thead>
-              <tr>
-                <th>Metric</th>
-                <th>BFV</th>
-                <th>CKKS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ['Encryption Time (ms)', bfvAverages.encrypt, ckksAverages.encrypt],
-                ['Addition Time (ms)', bfvAverages.add, ckksAverages.add],
-                ['Decryption Time (ms)', bfvAverages.decrypt, ckksAverages.decrypt],
-                ['Total Time (ms)', bfvAverages.total, ckksAverages.total],
-                ['Absolute Error', bfvAverages.error, ckksAverages.error],
-                ['RAM - Encryption (KB)', bfvAverages.ramEncrypt, ckksAverages.ramEncrypt],
-                ['RAM - Addition (KB)', bfvAverages.ramAdd, ckksAverages.ramAdd],
-                ['RAM - Decryption (KB)', bfvAverages.ramDecrypt, ckksAverages.ramDecrypt],
-              ].map(([label, bfvVal, ckksVal]) => (
-                <tr key={label}>
-                  <td>{label}</td>
-                  <td>{bfvVal.toFixed(3)}</td>
-                  <td>{ckksVal.toFixed(3)}</td>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+            <table border="1" cellPadding="8">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>BFV</th>
+                  <th>CKKS</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {[
+                  ['Encryption Time (ms)', bfvAverages.encrypt, ckksAverages.encrypt],
+                  ['Addition Time (ms)', bfvAverages.add, ckksAverages.add],
+                  ['Decryption Time (ms)', bfvAverages.decrypt, ckksAverages.decrypt],
+                  ['Total Time (ms)', bfvAverages.total, ckksAverages.total],
+                  ['Absolute Error', bfvAverages.error, ckksAverages.error],
+                  ['RAM - Encryption (KB)', bfvAverages.ramEncrypt, ckksAverages.ramEncrypt],
+                  ['RAM - Addition (KB)', bfvAverages.ramAdd, ckksAverages.ramAdd],
+                  ['RAM - Decryption (KB)', bfvAverages.ramDecrypt, ckksAverages.ramDecrypt],
+                ].map(([label, bfvVal, ckksVal]) => (
+                  <tr key={label}>
+                    <td>{label}</td>
+                    <td>{bfvVal.toFixed(3)}</td>
+                    <td>{ckksVal.toFixed(3)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>

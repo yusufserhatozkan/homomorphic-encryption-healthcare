@@ -1,11 +1,15 @@
 #include "crow.h"
 #include "HomomorphicEncryption.h"
 #include "CORSMiddleware.h"
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <string>
+#include <iostream>
+#include <chrono>
 
+#if defined(_WIN32)
+    #include <windows.h>
+    #include <psapi.h>
+#else
+    #include <sys/resource.h>
+#endif
 
 static std::string log_cipher(const std::string& ct) {
     if (ct.empty()) return "[EMPTY]";
@@ -43,14 +47,30 @@ std::vector<double> read_csv(const std::string& file_path, int column_index) {
     return values;
 }
 
+
+int encryption_count = 0; // Track how many encryptions we've done in this session
+
+void print_session_start() {
+    std::cout << "###########################\n";
+}
+
+void print_session_end() {
+    std::cout << "###########################\n";
+}
+
+void print_op_separator() {
+    std::cout << "---------------------------\n";
+}
+
 int main() {
     HomomorphicEncryption he_bfv(false, true);   // BFV with key generation
     HomomorphicEncryption he_ckks(true, true);   // CKKS with key generation
 
-    crow::App<CORSMiddleware> app; 
+    // Use our CORS middleware
+    crow::App<CORSMiddleware> app;
     app.loglevel(crow::LogLevel::Warning);
 
-    // CSV Endpoints
+        // CSV Endpoints
     CROW_ROUTE(app, "/csv/read")
     .methods("POST"_method)
     ([&](const crow::request& req) {
@@ -136,7 +156,7 @@ int main() {
         }
     });
 
-    // Encryption Endpoints
+
     CROW_ROUTE(app, "/encrypt")
     .methods("POST"_method)
     ([&](const crow::request& req) {
@@ -151,6 +171,7 @@ int main() {
         try {
             std::string scheme = json_data["scheme"].s();
             double value = json_data["value"].d();
+            std::string ciphertext;
 
             if (encryption_count % 2 == 0) {
                 print_session_start();  // Start of session every 2 encryptions
@@ -198,7 +219,6 @@ int main() {
             response["execution_us"] = duration_us;
             return crow::response(200, response);
         } catch (const std::exception& e) {
-            std::cout << "Encryption failed: " << e.what() << std::endl;
             response["error"] = e.what();
             return crow::response(500, response);
         }
@@ -212,14 +232,13 @@ int main() {
 
         if (!json_data || !json_data.has("ciphertext") || !json_data.has("scheme")) {
             response["error"] = "Missing required fields";
-            std::cout << "Decryption failed: Missing required fields" << std::endl;
             return crow::response(400, response);
         }
 
         try {
             std::string scheme = json_data["scheme"].s();
             std::string ciphertext = json_data["ciphertext"].s();
-            
+            double value;
 
             auto start = std::chrono::high_resolution_clock::now();
 
@@ -263,7 +282,6 @@ int main() {
             response["execution_us"] = duration_us;
             return crow::response(200, response);
         } catch (const std::exception& e) {
-            std::cout << "Decryption failed: " << e.what() << std::endl;
             response["error"] = e.what();
             return crow::response(500, response);
         }

@@ -17,6 +17,10 @@ void print_session_start() {
 void print_session_end() {
     std::cout << "---------------------------\n";
 }
+static std::string log_cipher(const std::string& ct) {
+    if (ct.empty()) return "[EMPTY]";
+    return ct.substr(0, std::min(20, (int)ct.length()));
+}
 
 int main() {
     HomomorphicEncryption he_bfv(false, false);  // BFV without key generation

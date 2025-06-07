@@ -32,7 +32,7 @@ const computeAverages = (results) => {
   const avg = (key) =>
     results.reduce((sum, r) => sum + r[key], 0) / results.length;
   return {
-    encrypt: (avg('encryptA') + avg('encryptB'))/2,
+    encrypt: (avg('encryptA') + avg('encryptB'))/2, 
     add: avg('add'),
     decrypt: avg('decrypt'),
     total: avg('total'),
@@ -295,7 +295,7 @@ function Experiment() {
               </thead>
               <tbody>
                 {[
-                  ['Encryption Time (ms)', bfvAverages.encrypt, ckksAverages.encrypt],
+                  ['Encryption Time Per Number (ms)', bfvAverages.encrypt, ckksAverages.encrypt],
                   ['Addition Time (ms)', bfvAverages.add, ckksAverages.add],
                   ['Decryption Time (ms)', bfvAverages.decrypt, ckksAverages.decrypt],
                   ['Total Time (ms)', bfvAverages.total, ckksAverages.total],

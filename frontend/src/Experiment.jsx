@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import axios from 'axios';
 import { Line } from 'react-chartjs-2';
 import {
@@ -18,11 +18,29 @@ const MAIN_BACKEND_URL = 'http://localhost:18080';
 
 const generateTestValues = () => {
   const result = [];
-  for (let i = 0; i <= 500000; i += 1000) {
-    const rounded = Math.round(i);
-    result.push([rounded, rounded * 2]);
+  const max = 500000;
+  const step = 1000;
+  for (let i = 0; i <= max; i += step) {
+    const a = i;
+    const b = i * 1.5;
+    result.push([a, b]);
   }
   return result;
+};
+
+const computeAverages = (results) => {
+  const avg = (key) =>
+    results.reduce((sum, r) => sum + r[key], 0) / results.length;
+  return {
+    encrypt: (avg('encryptA') + avg('encryptB'))/2,
+    add: avg('add'),
+    decrypt: avg('decrypt'),
+    total: avg('total'),
+    error: avg('error'),
+    ramEncrypt: avg('ramA') + avg('ramB'),
+    ramAdd: avg('ramAdd'),
+    ramDecrypt: avg('ramDecrypt'),
+  };
 };
 
 const testValues = generateTestValues();
@@ -109,9 +127,12 @@ function Experiment() {
     ],
   });
 
+  const bfvAverages = useMemo(() => computeAverages(bfvResults), [bfvResults]);
+  const ckksAverages = useMemo(() => computeAverages(ckksResults), [ckksResults]);
+
   return (
     <div style={{ padding: '2rem' }}>
-      <h2>Experiment: Encrypted Number Addition (backend timings)</h2>
+      <h2>Experiment: Encrypted Addition Performance</h2>
       <button onClick={handleRun} disabled={loading}>
         {loading ? 'Running experiment...' : 'Run BFV and CKKS tests'}
       </button>
@@ -121,10 +142,10 @@ function Experiment() {
           <h3>Absolute Error vs. Expected Sum</h3>
           <Line data={makeChartData('Error', 'error', 0)} />
 
-          <h3>Total Time (ms) vs. Expected Sum</h3>
+          <h3>Total Execution Time (ms) vs. Expected Sum</h3>
           <Line data={makeChartData('Total Time', 'total')} />
 
-          <h3>Operation Time Breakdown (ms)</h3>
+          <h3>Encryption Time (ms)</h3>
           <Line
             data={{
               labels: bfvResults.map((r) => r.input),
@@ -143,6 +164,15 @@ function Experiment() {
                   tension: 0.4,
                   fill: false,
                 },
+              ],
+            }}
+          />
+
+          <h3>Addition Time (ms)</h3>
+          <Line
+            data={{
+              labels: bfvResults.map((r) => r.input),
+              datasets: [
                 {
                   label: 'BFV - Add',
                   data: bfvResults.map((r) => r.add),
@@ -157,6 +187,15 @@ function Experiment() {
                   tension: 0.4,
                   fill: false,
                 },
+              ],
+            }}
+          />
+
+          <h3>Decryption Time (ms)</h3>
+          <Line
+            data={{
+              labels: bfvResults.map((r) => r.input),
+              datasets: [
                 {
                   label: 'BFV - Decrypt',
                   data: bfvResults.map((r) => r.decrypt),
@@ -243,6 +282,35 @@ function Experiment() {
               ],
             }}
           />
+
+          <h3>Average Metrics</h3>
+          <table border="1" cellPadding="8" style={{ marginBottom: '2rem' }}>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>BFV</th>
+                <th>CKKS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Encryption Time (ms)', bfvAverages.encrypt, ckksAverages.encrypt],
+                ['Addition Time (ms)', bfvAverages.add, ckksAverages.add],
+                ['Decryption Time (ms)', bfvAverages.decrypt, ckksAverages.decrypt],
+                ['Total Time (ms)', bfvAverages.total, ckksAverages.total],
+                ['Absolute Error', bfvAverages.error, ckksAverages.error],
+                ['RAM - Encryption (KB)', bfvAverages.ramEncrypt, ckksAverages.ramEncrypt],
+                ['RAM - Addition (KB)', bfvAverages.ramAdd, ckksAverages.ramAdd],
+                ['RAM - Decryption (KB)', bfvAverages.ramDecrypt, ckksAverages.ramDecrypt],
+              ].map(([label, bfvVal, ckksVal]) => (
+                <tr key={label}>
+                  <td>{label}</td>
+                  <td>{bfvVal.toFixed(3)}</td>
+                  <td>{ckksVal.toFixed(3)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </>
       )}
     </div>

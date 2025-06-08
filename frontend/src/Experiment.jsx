@@ -120,7 +120,7 @@ function Experiment() {
       }
 
       allRuns.push(results);
-      setProgressPercent(Math.round(((runIndex + 1) / (totalRuns * 2)) * 100)); // *2 because we run both BFV and CKKS
+      setProgressPercent((prev) => Math.round(prev + (1 / (totalRuns * 2)) * 100));
     }
 
     return averageResultArrays(allRuns);

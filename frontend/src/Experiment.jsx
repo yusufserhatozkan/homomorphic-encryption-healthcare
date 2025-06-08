@@ -76,48 +76,50 @@ function Experiment() {
     for (let runIndex = 0; runIndex < totalRuns; runIndex++) {
       const offsetTestValues = testValues.map(([a, b]) => [a + runIndex, b + runIndex]);
 
-      const results = [];
-      for (const [a, b] of offsetTestValues) {
-        const expected = a + b;
+      const results = await Promise.all(
+        offsetTestValues.map(async ([a, b]) => {
+          const expected = a + b;
 
-        const encA = await axios.post(`${MINI_BACKEND_URL}/encrypt`, { value: a, scheme });
-        const encryptTimeA = encA.data.execution_us / 1000;
+          const [encA, encB] = await Promise.all([
+            axios.post(`${MINI_BACKEND_URL}/encrypt`, { value: a, scheme }),
+            axios.post(`${MINI_BACKEND_URL}/encrypt`, { value: b, scheme }),
+          ]);
+          const encryptTimeA = encA.data.execution_us / 1000;
+          const encryptTimeB = encB.data.execution_us / 1000;
 
-        const encB = await axios.post(`${MINI_BACKEND_URL}/encrypt`, { value: b, scheme });
-        const encryptTimeB = encB.data.execution_us / 1000;
+          const addRes = await axios.post(`${MAIN_BACKEND_URL}/add_encrypted`, {
+            a: encA.data.ciphertext,
+            b: encB.data.ciphertext,
+            scheme,
+          });
+          const addTime = addRes.data.execution_us / 1000;
 
-        const addRes = await axios.post(`${MAIN_BACKEND_URL}/add_encrypted`, {
-          a: encA.data.ciphertext,
-          b: encB.data.ciphertext,
-          scheme,
-        });
-        const addTime = addRes.data.execution_us / 1000;
+          const decRes = await axios.post(`${MINI_BACKEND_URL}/decrypt`, {
+            ciphertext: addRes.data.ciphertext,
+            scheme,
+          });
+          const decryptTime = decRes.data.execution_us / 1000;
 
-        const decRes = await axios.post(`${MINI_BACKEND_URL}/decrypt`, {
-          ciphertext: addRes.data.ciphertext,
-          scheme,
-        });
-        const decryptTime = decRes.data.execution_us / 1000;
+          const output = decRes.data.value;
+          const error = Math.abs(expected - output);
+          const totalTime = encryptTimeA + encryptTimeB + addTime + decryptTime;
 
-        const output = decRes.data.value;
-        const error = Math.abs(expected - output);
-        const totalTime = encryptTimeA + encryptTimeB + addTime + decryptTime;
-
-        results.push({
-          input: expected,
-          output,
-          error,
-          encryptA: encryptTimeA,
-          encryptB: encryptTimeB,
-          add: addTime,
-          decrypt: decryptTime,
-          total: totalTime,
-          ramA: encA.data.ram_kb,
-          ramB: encB.data.ram_kb,
-          ramAdd: addRes.data.ram_kb,
-          ramDecrypt: decRes.data.ram_kb,
-        });
-      }
+          return {
+            input: expected,
+            output,
+            error,
+            encryptA: encryptTimeA,
+            encryptB: encryptTimeB,
+            add: addTime,
+            decrypt: decryptTime,
+            total: totalTime,
+            ramA: encA.data.ram_kb,
+            ramB: encB.data.ram_kb,
+            ramAdd: addRes.data.ram_kb,
+            ramDecrypt: decRes.data.ram_kb,
+          };
+        })
+      );
 
       allRuns.push(results);
       setProgressPercent((prev) => Math.round(prev + (1 / (totalRuns * 2)) * 100));
@@ -249,7 +251,7 @@ function Experiment() {
               </tr>
             </thead>
             <tbody>
-              {[
+              {[ 
                 ['Encryption Time Per Number (ms)', bfvAverages.encrypt, ckksAverages.encrypt],
                 ['Addition Time (ms)', bfvAverages.add, ckksAverages.add],
                 ['Decryption Time (ms)', bfvAverages.decrypt, ckksAverages.decrypt],

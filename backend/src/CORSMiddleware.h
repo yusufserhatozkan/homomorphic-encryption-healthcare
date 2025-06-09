@@ -1,33 +1,27 @@
-//
-// Created by Luca Nichifor on 4/14/25.
-//
+#ifndef CORS_MIDDLEWARE_H
+#define CORS_MIDDLEWARE_H
 
-#ifndef CORSMIDDLEWARE_H
-#define CORSMIDDLEWARE_H
-
-#endif //CORSMIDDLEWARE_H
-// src/CORSMiddleware.h
-#pragma once
 #include "crow.h"
 
-class CORSMiddleware {
-public:
+struct CORSMiddleware {
     struct context {};
-
+    
     void before_handle(crow::request& req, crow::response& res, context& ctx) {
-        res.set_header("Access-Control-Allow-Origin", "http://localhost:5173");
-        res.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
+        // Handle preflight requests
         if (req.method == crow::HTTPMethod::OPTIONS) {
-            res.code = 204;
+            res.add_header("Access-Control-Allow-Origin", "*");
+            res.add_header("Access-Control-Allow-Headers", "Content-Type");
+            res.add_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            res.code = 200;
             res.end();
         }
     }
 
     void after_handle(crow::request& req, crow::response& res, context& ctx) {
-        res.set_header("Access-Control-Allow-Origin", "http://localhost:5173");
-        res.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        res.set_header("Access-Control-Allow-Headers", "Content-Type");
+        res.add_header("Access-Control-Allow-Origin", "*");
+        res.add_header("Access-Control-Allow-Headers", "Content-Type");
+        res.add_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     }
 };
+
+#endif // CORS_MIDDLEWARE_H

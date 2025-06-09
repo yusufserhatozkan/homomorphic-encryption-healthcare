@@ -51,7 +51,7 @@ function Experiment() {
   const [loading, setLoading] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const totalRuns = 10;
+  const totalRuns = 30;
 
   const averageResultArrays = (runs) => {
     const averaged = runs[0].map((_, i) => {

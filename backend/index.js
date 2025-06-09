@@ -172,28 +172,13 @@ app.post("/api/demo/dataset", (req, res) => {
         break;
 
       case "average":
-        // First sum all values
-        const sum = ciphertexts.reduce((acc, cipher) => {
+        // For batched processing, we'll just return the sum
+        // The frontend will handle the division by total count
+        result = ciphertexts.reduce((acc, cipher) => {
           const temp = seal.CipherText();
           evaluator.add(acc, cipher, temp);
           return temp;
         });
-        // Then divide by count (using plaintext division)
-        const count = ciphertexts.length;
-        const plainCount = seal.PlainText();
-        if (schemeType === "bfv") {
-          const encoder = seal.BatchEncoder(context);
-          const vector = new Int32Array(encoder.slotCount).fill(0);
-          vector[0] = count;
-          encoder.encode(vector, plainCount);
-        } else {
-          const encoder = seal.CKKSEncoder(context);
-          const vector = new Float64Array(encoder.slotCount).fill(0);
-          vector[0] = count;
-          encoder.encode(vector, 1 << 20, plainCount);
-        }
-        result = seal.CipherText();
-        evaluator.dividePlain(sum, plainCount, result);
         break;
 
       case "min":
@@ -219,7 +204,12 @@ app.post("/api/demo/dataset", (req, res) => {
     const duration = Date.now() - start;
     log("Dataset", `${calculationType} calculation completed in ${duration}ms`);
 
-    res.json({ encryptedResult: result.save() });
+    res.json({ 
+      encryptedResult: result.save(),
+      timings: {
+        serverProcessing: duration
+      }
+    });
   } catch (err) {
     log("Error", `Dataset calculation failed: ${err.message}`);
     res

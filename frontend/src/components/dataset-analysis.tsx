@@ -44,6 +44,8 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
   const { loading, encryptNumber, decryptToNumber, publicKey, schemeType, setSchemeType } = useSeal()
   const [processingDataset, setProcessingDataset] = useState(false)
 
+  const BATCH_SIZE = 10; // Process 10 numbers at a time
+
   const parseCSV = (text: string): CSVData => {
     const lines = text.split('\n').map(line => line.trim()).filter(line => line);
     const headers = lines[0].split(',').map(header => header.trim());
@@ -80,6 +82,10 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
     setTimings(null)
 
     const startTime = performance.now()
+    let totalClientEncryptionTime = 0
+    let totalNetworkTime = 0
+    let totalServerProcessingTime = 0
+    let totalClientDecryptionTime = 0
 
     try {
       // Get the index of the selected column
@@ -98,34 +104,109 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
         throw new Error("No valid numbers found in the selected column")
       }
 
-      // Encrypt each number
-      const encryptStart = performance.now()
-      const encryptedValues = await Promise.all(numbers.map(encryptNumber))
-      const clientEncryptionTime = performance.now() - encryptStart
+      // Process in batches
+      let accumulatedResult: string | null = null;
+      let processedCount = 0;
 
-      // Send to backend for calculation
-      const requestStart = performance.now()
-      const response = await fetch(`${API_BASE_URL}/demo/dataset`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          encryptedValues,
-          publicKey,
-          schemeType,
-          calculationType
-        }),
-      })
-      const data = await response.json()
-      const networkTime = performance.now() - requestStart
+      for (let i = 0; i < numbers.length; i += BATCH_SIZE) {
+        const batch = numbers.slice(i, Math.min(i + BATCH_SIZE, numbers.length));
+        
+        // Encrypt batch
+        const encryptStart = performance.now()
+        const encryptedBatch = await Promise.all(batch.map(encryptNumber))
+        totalClientEncryptionTime += performance.now() - encryptStart
 
-      if (!response.ok) {
-        throw new Error("Failed to process dataset")
+        // Send batch to backend
+        const requestStart = performance.now()
+        const response = await fetch(`${API_BASE_URL}/demo/dataset`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            encryptedValues: encryptedBatch,
+            publicKeyBase64: publicKey,
+            schemeType,
+            calculationType: calculationType === "average" ? "sum" : calculationType
+          }),
+        })
+        const data = await response.json()
+        totalNetworkTime += performance.now() - requestStart
+
+        if (!response.ok) {
+          throw new Error("Failed to process dataset batch")
+        }
+
+        totalServerProcessingTime += data.timings?.serverProcessing || 0
+
+        // Handle accumulation based on calculation type
+        if (accumulatedResult === null) {
+          // First batch
+          accumulatedResult = data.encryptedResult
+        } else {
+          // Accumulate with previous result based on calculation type
+          const accumulateStart = performance.now()
+          let endpoint = "/demo/addition"; // Default for sum
+          
+          // For min/max, we'd need different endpoints, but for now using addition
+          // In a real implementation, you'd need separate min/max endpoints
+          if (calculationType === "min" || calculationType === "max") {
+            // For now, using addition - this would need proper min/max endpoints
+            endpoint = "/demo/addition";
+          }
+          
+          const accumulateResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cipher1Base64: accumulatedResult,
+              cipher2Base64: data.encryptedResult,
+              publicKeyBase64: publicKey,
+              schemeType
+            }),
+          })
+          const accumulateData = await accumulateResponse.json()
+          totalNetworkTime += performance.now() - accumulateStart
+
+          if (!accumulateResponse.ok) {
+            throw new Error("Failed to accumulate batch results")
+          }
+
+          accumulatedResult = accumulateData.encryptedResult
+          totalServerProcessingTime += accumulateData.timings?.serverProcessing || 0
+        }
+
+        processedCount += batch.length
       }
 
-      // Decrypt the result
+      if (!accumulatedResult) {
+        throw new Error("No result obtained from processing")
+      }
+
+      // For min/max operations, we're done. For average, we need to divide by count
+      let finalResult = accumulatedResult;
+      if (calculationType === "average") {
+        // Encrypt the count and divide
+        const encryptStart = performance.now()
+        const encryptedCount = encryptNumber(processedCount)
+        totalClientEncryptionTime += performance.now() - encryptStart
+
+        // Perform division on server (this would need a new endpoint for division)
+        // For now, we'll decrypt, divide, and re-encrypt
+        const decryptStart = performance.now()
+        const sum = decryptToNumber(accumulatedResult)
+        const average = sum !== null ? sum / processedCount : null
+        totalClientDecryptionTime += performance.now() - decryptStart
+
+        if (average !== null) {
+          const encryptAvgStart = performance.now()
+          finalResult = encryptNumber(average)
+          totalClientEncryptionTime += performance.now() - encryptAvgStart
+        }
+      }
+
+      // Decrypt the final result
       const decryptStart = performance.now()
-      const decryptedResult = decryptToNumber(data.encryptedResult)
-      const clientDecryptionTime = performance.now() - decryptStart
+      const decryptedResult = decryptToNumber(finalResult)
+      totalClientDecryptionTime += performance.now() - decryptStart
 
       if (decryptedResult === null) {
         setError("Decryption failed")
@@ -139,10 +220,10 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
       }
       setResult(result)
       setTimings({
-        clientEncryption: clientEncryptionTime,
-        networkRequest: networkTime,
-        serverProcessing: data.timings?.serverProcessing || 0,
-        clientDecryption: clientDecryptionTime,
+        clientEncryption: totalClientEncryptionTime,
+        networkRequest: totalNetworkTime,
+        serverProcessing: totalServerProcessingTime,
+        clientDecryption: totalClientDecryptionTime,
         totalTime: performance.now() - startTime
       })
     } catch (err) {

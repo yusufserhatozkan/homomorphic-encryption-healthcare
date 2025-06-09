@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 
 interface DatasetResult {
   type: string
@@ -34,6 +35,14 @@ interface CSVData {
   rows: string[][];
 }
 
+interface ProcessingProgress {
+  currentBatch: number;
+  totalBatches: number;
+  processedRows: number;
+  totalRows: number;
+  percentage: number;
+}
+
 export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
   const [file, setFile] = useState<File | null>(null)
   const [csvData, setCSVData] = useState<CSVData | null>(null)
@@ -43,6 +52,7 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
   const [calculationType, setCalculationType] = useState<CalculationType>("sum")
   const { loading, encryptNumber, decryptToNumber, publicKey, schemeType, setSchemeType } = useSeal()
   const [processingDataset, setProcessingDataset] = useState(false)
+  const [progress, setProgress] = useState<ProcessingProgress | null>(null)
 
   const BATCH_SIZE = 10; // Process 10 numbers at a time
 
@@ -80,6 +90,7 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
     setError(null)
     setResult(null)
     setTimings(null)
+    setProgress(null)
 
     const startTime = performance.now()
     let totalClientEncryptionTime = 0
@@ -104,12 +115,26 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
         throw new Error("No valid numbers found in the selected column")
       }
 
+      // Calculate total batches
+      const totalBatches = Math.ceil(numbers.length / BATCH_SIZE);
+
       // Process in batches
       let accumulatedResult: string | null = null;
       let processedCount = 0;
 
       for (let i = 0; i < numbers.length; i += BATCH_SIZE) {
+        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
         const batch = numbers.slice(i, Math.min(i + BATCH_SIZE, numbers.length));
+        
+        // Update progress
+        const currentProgress = {
+          currentBatch: batchNumber,
+          totalBatches,
+          processedRows: processedCount,
+          totalRows: numbers.length,
+          percentage: Math.round((processedCount / numbers.length) * 100)
+        };
+        setProgress(currentProgress);
         
         // Encrypt batch
         const encryptStart = performance.now()
@@ -175,6 +200,16 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
         }
 
         processedCount += batch.length
+        
+        // Update final progress for this batch
+        const updatedProgress = {
+          currentBatch: batchNumber,
+          totalBatches,
+          processedRows: processedCount,
+          totalRows: numbers.length,
+          percentage: Math.round((processedCount / numbers.length) * 100)
+        };
+        setProgress(updatedProgress);
       }
 
       if (!accumulatedResult) {
@@ -230,6 +265,7 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
       setProcessingDataset(false)
+      setProgress(null)
     }
   }
 
@@ -308,6 +344,20 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
                 </Select>
               </div>
             </div>
+
+            {/* Progress Bar */}
+            {progress && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Processing batch {progress.currentBatch} of {progress.totalBatches}</span>
+                  <span>{progress.processedRows} / {progress.totalRows} rows</span>
+                </div>
+                <Progress value={progress.percentage} className="w-full" />
+                <div className="text-center text-sm text-muted-foreground">
+                  {progress.percentage}% complete
+                </div>
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex flex-row gap-4">
             <div className="flex">
@@ -328,15 +378,9 @@ export function DatasetAnalysis({ setError }: DatasetAnalysisProps) {
               className="flex-1"
             >
               {loading || processingDataset ? (
-                <>
-                  <Calculator className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
+                "Processing..."
               ) : (
-                <>
-                  <Database className="mr-2 h-4 w-4" />
-                  Analyze Dataset
-                </>
+                "Analyze Dataset"
               )}
             </Button>
           </CardFooter>

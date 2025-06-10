@@ -11,18 +11,21 @@ This is the **C++ implementation** of the homomorphic encryption project using M
 ## Prerequisites
 
 ### Backend Requirements
+
 - **C++ Compiler**: C++17 or higher (GCC, Clang, or MSVC)
 - **CMake**: Version 3.15 or higher
 - **Microsoft SEAL**: Included in the project dependencies
 - **Crow Framework**: Included as a library
 
 ### Frontend Requirements
+
 - **Node.js**: Version 16 or higher
 - **npm**: For package management
 
 ## Installation and Setup
 
 ### 1. Navigate to Microsoft-Seal Directory
+
 ```bash
 cd applied-cryptography-group08/microsoft-seal
 ```
@@ -30,6 +33,7 @@ cd applied-cryptography-group08/microsoft-seal
 ### 2. Backend Setup
 
 #### macOS/Linux
+
 ```bash
 # From the microsoft-seal directory
 chmod +x backend/scripts/build.sh
@@ -37,12 +41,14 @@ chmod +x backend/scripts/build.sh
 ```
 
 #### Windows
+
 ```bat
 # From the microsoft-seal directory
 backend\scripts\build.bat
 ```
 
 ### 3. Frontend Setup
+
 ```bash
 cd frontend
 npm install
@@ -53,12 +59,14 @@ npm install
 ### Starting the Backend
 
 #### macOS/Linux
+
 ```bash
 # From the microsoft-seal directory
 ./backend/build/backend
 ```
 
 #### Windows
+
 ```bat
 # From the microsoft-seal directory
 backend\build\Debug\backend.exe
@@ -67,6 +75,7 @@ backend\build\Debug\backend.exe
 The backend will start on `http://localhost:8080`
 
 ### Starting the Frontend
+
 ```bash
 # From the microsoft-seal/frontend directory
 npm run dev
@@ -79,11 +88,13 @@ The frontend will be available at `http://localhost:5173`
 ### Backend Development
 
 The backend source code is located in `backend/src/`:
+
 - `main-backend.cpp`: Main application entry point
 - `HomomorphicEncryption.cpp/h`: Core encryption logic
 - `CORSMiddleware.h`: CORS handling for web requests
 
 #### Rebuilding After Changes
+
 ```bash
 # Clean build (if needed)
 rm -rf backend/build
@@ -97,11 +108,13 @@ backend\scripts\build.bat   # Windows
 ### Frontend Development
 
 The frontend is built with React and Vite:
+
 - Fast hot-reload development
 - Modern ES6+ JavaScript
 - Component-based architecture
 
 Key files:
+
 - `src/App.jsx`: Main application component
 - `src/Experiment.jsx`: Encryption experiment interface
 
@@ -115,13 +128,13 @@ Key files:
 
 ## Additional Documentation
 
-- [Backend Documentation](../docs/backend.md)
-- [Frontend Documentation](../docs/frontend.md)
-- [Microsoft SEAL Documentation](https://microsoft.github.io/SEAL/)
+- [Microsoft SEAL Documentation](https://github.com/microsoft/SEAL)
 
 ## Switching to Node-SEAL Version
 
 If you prefer the Node.js implementation, check out the [Node-SEAL version](../node-seal/README.md) which offers:
+
 - Full JavaScript/TypeScript stack
 - Faster development iteration
 - Modern Next.js frontend with advanced UI components
+

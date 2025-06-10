@@ -115,8 +115,6 @@ void HomomorphicEncryption::generate_keys() {
 
     std::cout << "Key generation time: " << duration << " microseconds" << std::endl;
     std::cout << "Poly modulus degree: " << parms.poly_modulus_degree() << std::endl;
-
-    // ✅ Added: Print modulus coefficients
     std::cout << "Modulus Coefficients: [ ";
     for (const auto& mod : parms.coeff_modulus()) {
         std::cout << mod.value() << " ";
@@ -203,17 +201,6 @@ void HomomorphicEncryption::load_public_key(const std::string& serialized_key) {
     encryptor = std::make_unique<seal::Encryptor>(*context, public_key);
 }
 
-// New methods for CSV operations
-std::vector<std::string> HomomorphicEncryption::encrypt_array(const std::vector<double>& values) const {
-    if (!encryptor) throw std::runtime_error("Encryptor not initialized");
-    
-    std::vector<std::string> encrypted_array;
-    for (const auto& value : values) {
-        encrypted_array.push_back(encrypt(value));
-    }
-    return encrypted_array;
-}
-
 std::string HomomorphicEncryption::sum(const std::vector<std::string>& ciphertexts) const {
     if (ciphertexts.empty()) {
         throw std::invalid_argument("Cannot sum empty vector of ciphertexts");
@@ -229,15 +216,3 @@ std::string HomomorphicEncryption::sum(const std::vector<std::string>& ciphertex
     return serialize(result);
 }
 
-std::string HomomorphicEncryption::multiply_plain(const std::string& ciphertext, double scalar) const {
-    if (!use_ckks) {
-        throw std::runtime_error("Plain multiplication is only supported for CKKS scheme");
-    }
-    
-    seal::Ciphertext ct = deserialize(ciphertext);
-    seal::Plaintext plain_scalar;
-    ckks_encoder->encode(scalar, scale, plain_scalar);
-    evaluator->multiply_plain_inplace(ct, plain_scalar);
-    evaluator->rescale_to_next_inplace(ct);
-    return serialize(ct);
-}

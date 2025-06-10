@@ -184,7 +184,6 @@ int main() {
                 response["encrypted_result"] = sum;
             } else if (scheme == "ckks") {
                 std::string sum = he_ckks.sum(ciphertexts);
-                //std::string avg = he_ckks.multiply_plain(sum, 1.0 / count);
                 response["encrypted_result"] = sum;
             } else {
                 throw std::runtime_error("Invalid scheme");
@@ -208,6 +207,6 @@ int main() {
     });
 
     std::cout << "Starting main backend on port 18080...\n";
-    std::cout << "###########################\n"; // One-time line at startup
+    std::cout << "###########################\n";
     app.port(18080).multithreaded().run();
 }

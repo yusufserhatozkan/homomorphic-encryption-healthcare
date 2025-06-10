@@ -46,14 +46,3 @@ FetchContent_Declare(
     GIT_TAG release-1.11.0
 )
 FetchContent_MakeAvailable(googletest)
-
-# Build tests
-add_executable(csv_tests tests/csv_handler_test.cpp)
-target_link_libraries(csv_tests gtest_main)
-
-if(WIN32)
-    target_link_libraries(csv_tests Ws2_32 Mswsock)
-endif()
-
-enable_testing()
-add_test(NAME csv_tests COMMAND csv_tests)

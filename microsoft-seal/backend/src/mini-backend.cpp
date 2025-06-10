@@ -48,7 +48,7 @@ std::vector<double> read_csv(const std::string& file_path, int column_index) {
 }
 
 
-int encryption_count = 0; // Track how many encryptions we've done in this session
+int encryption_count = 0;
 
 void print_session_start() {
     std::cout << "###########################\n";
@@ -323,7 +323,7 @@ int main() {
     });
 
     std::cout << "Starting mini-backend on port 18081...\n";
-    std::cout << "###########################\n"; // Only once at backend start
+    std::cout << "###########################\n"; 
 
     app.port(18081).multithreaded().run();
 }

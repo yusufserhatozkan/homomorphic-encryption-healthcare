@@ -1,125 +1,65 @@
-# Homomorphic Encryption Project in Cloud Environment
+# Homomorphic Encryption Project - Applied Cryptography Group 08
 
-Welcome to the **Applied Cryptography - Group 08** Cloud Processing Module. This project demonstrates the implementation of homomorphic encryption, allowing computations to be performed on encrypted data without decrypting it. The project is divided into two main components:
+Welcome to the **Applied Cryptography - Group 08** project repository. This project demonstrates the implementation of homomorphic encryption for secure healthcare analytics, allowing computations to be performed on encrypted data without decrypting it.
 
-1. **Frontend**: A web-based interface built with Vite + React in Node.js.
-2. **Backend**: A C++ application (`src/main.cpp`) that handles the core homomorphic encryption operations.
+This repository contains **two different implementations** of the same homomorphic encryption system, each using different technology stacks:
 
-This component is part of the larger project *Encrypted Intelligence: Leveraging Homomorphic Encryption for Secure Healthcare Analytics*. It demonstrates how to securely process healthcare data in a cloud environment using homomorphic encryption—enabling computations on encrypted data without exposing sensitive information.
+## Project Versions
 
-To view the machine learning part of the project go to this repository : [Repository Containing the Machine learning Part](https://gitlab.maastrichtuniversity.nl/I6365974/machine-learning)   
+### 1. Microsoft SEAL Version (`microsoft-seal/`)
+- **Backend**: C++ with Microsoft SEAL library and Crow framework
+- **Frontend**: React with Vite
+- **Focus**: High-performance native implementation with Microsoft's SEAL library
 
-## Table of Contents
-1. [Project Overview](#overview)
-2. [Features](#features)
-3. [Prerequisites](#prerequisites)
-4. [Installation and Setup](#installation-and-setup)
-5. [Running and Building the Backend](#running-and-building-the-backend)
-6. [Running the Frontend](#running-the-frontend)
-7. [Notes](#notes)
-8. [Contributors](#contributors)
-9. [License](#license)
+### 2. Node-SEAL Version (`node-seal/`)
+- **Backend**: Node.js with node-seal library and Express
+- **Frontend**: Next.js with TypeScript and modern UI components
+- **Focus**: JavaScript ecosystem implementation with comprehensive UI
 
-## Overview
+## Documentation
 
-This module simulates secure cloud processing by performing operations such as data aggregation and computations directly on encrypted inputs. The goal is to enable privacy-preserving data processing in sensitive environments like healthcare, where confidentiality is paramount.
+Each version has its own detailed documentation:
 
-The module consists of:
-- **Frontend Application**: Built with React and Vite, providing an intuitive interface for data entry and result visualization.
-- **Backend Service**: Developed in C++ using the Crow framework, handling the encryption, secure processing, and decryption operations.
+- **[Microsoft SEAL Version Documentation](./microsoft-seal/README.md)** - C++ implementation setup and usage
+- **[Node-SEAL Version Documentation](./node-seal/README.md)** - Node.js implementation setup and usage
 
-## Features
+## Project Overview
 
-- **Frontend**: Provides a user-friendly interface for interacting with the encryption system.
-- **Backend**: Implements homomorphic encryption algorithms and performs computations on encrypted data.
+This project is part of the larger initiative *"Encrypted Intelligence: Leveraging Homomorphic Encryption for Secure Healthcare Analytics"*. It demonstrates how to securely process healthcare data in a cloud environment using homomorphic encryption—enabling computations on encrypted data without exposing sensitive information.
 
-This is still a prototype, so functionality is limited to encryption and decryption of data using homomorphic encryption. It also includes an easy-to-use interface.
+**Related Repository**: [Machine Learning Component](https://gitlab.maastrichtuniversity.nl/I6365974/machine-learning)
 
-## Prerequisites
+## Technology Comparison
 
-### Frontend
-- Node.js (v16 or higher)
-- npm
+| Feature | Microsoft SEAL Version | Node-SEAL Version |
+|---------|----------------------|-------------------|
+| **Backend Language** | C++ | Node.js/JavaScript |
+| **Frontend Framework** | React + Vite | Next.js + TypeScript |
+| **Encryption Library** | Microsoft SEAL (native) | node-seal (JavaScript bindings) |
+| **Performance** | Higher (native C++) | Good (JavaScript) |
+| **Development Speed** | Moderate | Faster |
+| **UI Complexity** | Simple | Advanced with modern components |
 
-### Backend
-- C++ compiler (version C++ 17 or higher)
-- CMake (version 3.15 or higher)
-- Crow library (this library is already included)
+## Quick Start
 
-## Installation and Setup
+Choose your preferred implementation and follow the respective documentation:
 
-### 1. Clone the Repo
-```bash
-git clone https://gitlab.maastrichtuniversity.nl/I6360608/applied-cryptography-group08.git
-```
+1. **For C++ developers or high-performance requirements**: Use the [Microsoft SEAL version](./microsoft-seal/README.md)
+2. **For JavaScript developers or rapid prototyping**: Use the [Node-SEAL version](./node-seal/README.md)
 
-## Running and Building the Backend
-
-**Note:**  
-You need to rebuild the backend every time you pull new changes or modify the C++ code. The build process creates a `build` folder inside `backend/`, which is ignored by git and can be safely deleted and recreated at any time.
-
-### Build and Run on macOS/Linux
-
-From the project root, run:
-```sh
-./backend/scripts/build.sh
-```
-This will:
-- Create or update the `backend/build/` directory
-- Configure the project with CMake
-- Build the backend application
-
-To run the backend after building:
-```sh
-./backend/build/backend
-```
-
-### Build and Run on Windows
-
-From the project root, run:
-```bat
-backend\scripts\build.bat
-```
-This will:
-- Create or update the `backend\build\` directory
-- Configure the project with CMake
-- Build the backend application
-
-To run the backend after building (from the project root):
-```bat
-backend\build\Debug\backend.exe
-```
-If you built in Release mode, use `backend\build\Release\backend.exe` instead.
-
-**Tip:**  
-If you ever need a clean build, simply delete the `backend/build/` directory and run the script again.
-
-## Running the Frontend
-
-```bash
-cd applied-cryptography-group08/frontend/
-npm install
-npm run dev
-```
-
-After running the frontend, open your browser and navigate to the URL provided in the terminal (typically [http://localhost:5173/](http://localhost:5173/)).
-
-## Notes
-
-- The frontend communicates with the backend via HTTP or WebSocket (depending on your implementation). Ensure the backend is accessible to the frontend.
-- The backend must be running before interacting with the frontend.
+Both implementations provide the same core functionality for homomorphic encryption operations on healthcare data.
 
 ## Contributors
 
 The following individuals contributed to the development of this project:
 
-- **Luca**
-- **Kamil**
-- **Andrei**
-- **Tomasz**
-- **Jakub**
-- **Yusuf**
-- **Calin**
+- **Andrei Visoiu**
+- **Kamil Lipiński**
+- **Luca Nichifor**
+- **Yusuf Özkan**
+- **Calin Suconicov**
+- **Jakub Mazur**
+- **Tomasz Mizera**
 
 ## License
 

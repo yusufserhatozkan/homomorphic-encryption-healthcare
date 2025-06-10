@@ -22,9 +22,8 @@ This is the **C++ implementation** of the homomorphic encryption project using M
 
 ## Installation and Setup
 
-### 1. Clone the Repository
+### 1. Navigate to Microsoft-Seal Directory
 ```bash
-git clone https://gitlab.maastrichtuniversity.nl/I6360608/applied-cryptography-group08.git
 cd applied-cryptography-group08/microsoft-seal
 ```
 

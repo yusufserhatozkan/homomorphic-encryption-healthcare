@@ -79,7 +79,7 @@ The following individuals contributed to the development of this project:
 - **Andrei Visoiu**
 - **Kamil Lipiński**
 - **Luca Nichifor**
-- **Yusuf Özkan**
+- **Yusuf Serhat Özkan**
 - **Calin Suconicov**
 - **Jakub Mazur**
 - **Tomasz Mizera**
